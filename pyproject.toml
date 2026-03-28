@@ -10,6 +10,7 @@ dependencies = [
     "cryptography>=46.0.6",
     "fastapi>=0.135.2",
     "httpx>=0.28.1",
+    "ksef2>=0.10.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
     "sqlalchemy>=2.0.48",
@@ -39,6 +40,7 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.mypy]
 namespace_packages = true
