@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # KSeF
     KSEF_TOKEN: str = ""
     KSEF_NIP: str = ""
+    KSEF_BASE_URL: str = ""
+
+    # Encryption (Fernet key: Fernet.generate_key().decode())
+    ENCRYPTION_MASTER_KEY: str = ""
 
     @property
     def DATABASE_URL_asyncpg(self) -> str:
