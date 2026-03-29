@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base, bigint_pk
+
+from datetime import datetime
 
 if TYPE_CHECKING:
     from app.db.models.invoice import Invoice
@@ -18,7 +20,7 @@ class Company(Base):
     id: Mapped[bigint_pk]
     nip: Mapped[str] = mapped_column(String(10), unique=True, index=True)
     ksef_token: Mapped[str] = mapped_column(String)
-    last_sync_hwm_date: Mapped[DateTime | None] = mapped_column(
+    last_sync_hwm_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
