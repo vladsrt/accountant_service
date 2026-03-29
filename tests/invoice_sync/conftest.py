@@ -7,7 +7,6 @@ from cryptography.fernet import Fernet
 
 from app.core.config import Settings
 
-
 # ---------------------------------------------------------------------------
 # FA(3) XML fixtures
 # ---------------------------------------------------------------------------
@@ -20,7 +19,7 @@ def sample_xml_content() -> str:
     Mirrors a real KSeF FA(3) document with 6 line items,
     Podmiot1 (seller) and Podmiot2 (buyer), totals, and header.
     """
-    return '''\
+    return """\
 <?xml version="1.0" encoding="UTF-8"?>
 <Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
@@ -126,13 +125,13 @@ def sample_xml_content() -> str:
       <P_12>23</P_12>
     </FaWiersz>
   </Fa>
-</Faktura>'''
+</Faktura>"""
 
 
 @pytest.fixture()
 def minimal_xml_content() -> str:
     """Minimal valid FA(3) XML with only mandatory fields."""
-    return '''\
+    return """\
 <?xml version="1.0" encoding="UTF-8"?>
 <Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
   <Naglowek>
@@ -151,13 +150,13 @@ def minimal_xml_content() -> str:
     <P_2>FV/MIN/001</P_2>
     <P_15>100.00</P_15>
   </Fa>
-</Faktura>'''
+</Faktura>"""
 
 
 @pytest.fixture()
 def invalid_xml_content() -> str:
     """Invalid XML that cannot be parsed."""
-    return '<Faktura><незакрытый тег'
+    return "<Faktura><незакрытый тег"
 
 
 @pytest.fixture()

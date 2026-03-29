@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, DateTime
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base, bigint_pk
-
-from datetime import datetime
 
 if TYPE_CHECKING:
     from app.db.models.invoice import Invoice

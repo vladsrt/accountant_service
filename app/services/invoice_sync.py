@@ -153,19 +153,16 @@ class InvoiceSyncService:
 
         # Split the date range into ≤90-day chunks (KSeF API limitation)
         chunks = self._split_date_range(date_from, date_to)
-        self.logger.info(
-            "Date range split into %d chunk(s) for role=%s", len(chunks), role
-        )
+        self.logger.info("Date range split into %d chunk(s) for role=%s", len(chunks), role)
 
         parsed_results: list[dict] = []
         max_hwm: datetime | None = None
 
         for chunk_idx, (chunk_from, chunk_to) in enumerate(chunks, 1):
-            
             # Pagination loop for when a chunk exceeds 10,000 files
             current_date_from = chunk_from
             page_idx = 1
-            
+
             while True:
                 self.logger.info(
                     "Processing chunk %d/%d page %d [%s → %s] (role=%s)",
@@ -205,14 +202,11 @@ class InvoiceSyncService:
                     poll_interval=self._settings.KSEF_EXPORT_POLL_INTERVAL,
                 )
                 self.logger.info(
-                    "Export package ready (role=%s, chunk=%d, page=%d)", 
-                    role, chunk_idx, page_idx
+                    "Export package ready (role=%s, chunk=%d, page=%d)", role, chunk_idx, page_idx
                 )
 
                 # 3. Download and decrypt the ZIP
-                download_dir = (
-                    Path(self._settings.KSEF_DOWNLOAD_DIR) / str(company_id) / role
-                )
+                download_dir = Path(self._settings.KSEF_DOWNLOAD_DIR) / str(company_id) / role
                 download_dir.mkdir(parents=True, exist_ok=True)
 
                 paths: list[Path] = await asyncio.to_thread(
@@ -241,20 +235,24 @@ class InvoiceSyncService:
                     if "metadata" in path.name.lower() and path.suffix == ".json":
                         try:
                             meta = json.loads(path.read_text(encoding="utf-8"))
-                            
+
                             # Extract permanentStorageHwmDate
                             hwm_str = meta.get("permanentStorageHwmDate")
                             if hwm_str:
-                                hwm_dt = datetime.fromisoformat(hwm_str).replace(tzinfo=timezone.utc)
+                                hwm_dt = datetime.fromisoformat(hwm_str).replace(
+                                    tzinfo=timezone.utc
+                                )
                                 if max_hwm is None or hwm_dt > max_hwm:
                                     max_hwm = hwm_dt
-                                    
+
                             # Extract pagination indicators
                             is_truncated = meta.get("isTruncated", False)
                             last_date_str = meta.get("lastPermanentStorageDate")
                             if last_date_str:
-                                last_storage_date = datetime.fromisoformat(last_date_str).replace(tzinfo=timezone.utc)
-                                
+                                last_storage_date = datetime.fromisoformat(last_date_str).replace(
+                                    tzinfo=timezone.utc
+                                )
+
                         except Exception:
                             self.logger.exception("Failed to parse metadata file %s", path.name)
                         finally:
@@ -270,9 +268,7 @@ class InvoiceSyncService:
                     try:
                         parsed = FA3Parser.parse(xml_content)
                     except FA3ParseError:
-                        self.logger.exception(
-                            "Failed to parse XML file %s — skipping", path.name
-                        )
+                        self.logger.exception("Failed to parse XML file %s — skipping", path.name)
                         ksef_ref = path.stem
                         await self._upsert_error_invoice(
                             company_id=company_id,
@@ -302,7 +298,7 @@ class InvoiceSyncService:
                 if is_truncated and last_storage_date:
                     self.logger.info(
                         "Package truncated. Shifting next page date_from to %s",
-                        last_storage_date.isoformat()
+                        last_storage_date.isoformat(),
                     )
                     current_date_from = last_storage_date
                     page_idx += 1
@@ -486,9 +482,7 @@ class InvoiceSyncService:
         date_from = self._get_date_from(company_row)
         date_to = datetime.now(timezone.utc)
 
-        self.logger.info(
-            "Sync window: %s → %s", date_from.isoformat(), date_to.isoformat()
-        )
+        self.logger.info("Sync window: %s → %s", date_from.isoformat(), date_to.isoformat())
 
         # 5. Sync seller invoices
         try:

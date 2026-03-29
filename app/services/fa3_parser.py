@@ -164,9 +164,7 @@ class FA3Parser:
                     if dane_local == "DaneIdentyfikacyjne":
                         for nip_el in dane.iter():
                             nip_local = (
-                                nip_el.tag.split("}")[-1]
-                                if "}" in nip_el.tag
-                                else nip_el.tag
+                                nip_el.tag.split("}")[-1] if "}" in nip_el.tag else nip_el.tag
                             )
                             if nip_local == "NIP" and nip_el.text:
                                 return nip_el.text.strip()
@@ -210,11 +208,7 @@ class FA3Parser:
                 local = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
                 if local == "FaWiersz":
                     for child in elem:
-                        child_local = (
-                            child.tag.split("}")[-1]
-                            if "}" in child.tag
-                            else child.tag
-                        )
+                        child_local = child.tag.split("}")[-1] if "}" in child.tag else child.tag
                         if child_local == "P_7" and child.text:
                             descriptions.append(child.text.strip()[:_P7_MAX_LENGTH])
 

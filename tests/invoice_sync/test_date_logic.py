@@ -9,7 +9,6 @@ import pytest
 from app.core.config import Settings
 from app.services.invoice_sync import InvoiceSyncService
 
-
 # ---------------------------------------------------------------------------
 # TestSplitDateRange
 # ---------------------------------------------------------------------------
@@ -119,18 +118,14 @@ class TestGetDateFrom:
         result = service._get_date_from(company_row)
         assert result == datetime(2026, 1, 1, tzinfo=timezone.utc)
 
-    def test_subsequent_run_with_hwm(
-        self, service: InvoiceSyncService
-    ) -> None:
+    def test_subsequent_run_with_hwm(self, service: InvoiceSyncService) -> None:
         """When HWM is set, should return the HWM datetime."""
         hwm = datetime(2026, 3, 15, tzinfo=timezone.utc)
         company_row = ("1234567890", "encrypted_token", hwm)
         result = service._get_date_from(company_row)
         assert result == datetime(2026, 3, 15, tzinfo=timezone.utc)
 
-    def test_hwm_without_timezone(
-        self, service: InvoiceSyncService
-    ) -> None:
+    def test_hwm_without_timezone(self, service: InvoiceSyncService) -> None:
         """A naive HWM datetime must be made timezone-aware (UTC)."""
         naive_hwm = datetime(2026, 3, 15)  # no tzinfo
         company_row = ("1234567890", "encrypted_token", naive_hwm)
@@ -138,17 +133,13 @@ class TestGetDateFrom:
         assert result.tzinfo is not None
         assert result == datetime(2026, 3, 15, tzinfo=timezone.utc)
 
-    def test_date_from_is_always_timezone_aware_no_hwm(
-        self, service: InvoiceSyncService
-    ) -> None:
+    def test_date_from_is_always_timezone_aware_no_hwm(self, service: InvoiceSyncService) -> None:
         """Result must always have tzinfo set (no HWM case)."""
         company_row = ("1234567890", "encrypted_token", None)
         result = service._get_date_from(company_row)
         assert result.tzinfo is not None
 
-    def test_date_from_is_always_timezone_aware_with_hwm(
-        self, service: InvoiceSyncService
-    ) -> None:
+    def test_date_from_is_always_timezone_aware_with_hwm(self, service: InvoiceSyncService) -> None:
         """Result must always have tzinfo set (with HWM case)."""
         hwm = datetime(2026, 6, 1, tzinfo=timezone.utc)
         company_row = ("1234567890", "encrypted_token", hwm)
