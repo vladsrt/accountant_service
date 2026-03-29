@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String
@@ -18,7 +19,7 @@ class Company(Base):
     id: Mapped[bigint_pk]
     nip: Mapped[str] = mapped_column(String(10), unique=True, index=True)
     ksef_token: Mapped[str] = mapped_column(String)
-    last_sync_hwm_date: Mapped[DateTime | None] = mapped_column(
+    last_sync_hwm_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 

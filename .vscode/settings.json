@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "/home/sk8ver/Documents/accountant_service/.venv/bin/python",
+    "python.analysis.extraPaths": [
+        "/home/sk8ver/Documents/accountant_service"
+    ],
+    "python.analysis.typeCheckingMode": "basic"
+}
