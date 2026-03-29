@@ -12,10 +12,11 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any, Literal
 
 from ksef2 import Client
 from ksef2.domain.models import InvoicesFilter
-from sqlalchemy import select, text
+from sqlalchemy import Row, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -25,6 +26,8 @@ from app.services.ksef_auth import CryptoUtil, _resolve_environment
 
 logger = logging.getLogger(__name__)
 
+
+InvoicesRole = Literal["buyer", "seller", "third_subject", "authorized_subject"]
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -61,7 +64,7 @@ class InvoiceSyncService:
     # Date watermark
     # ------------------------------------------------------------------
 
-    def _get_date_from(self, company_row: tuple) -> datetime:
+    def _get_date_from(self, company_row: Row) -> datetime:
         """Return the start date for the next sync window.
 
         Uses ``last_sync_hwm_date`` if available, otherwise falls back
@@ -118,8 +121,8 @@ class InvoiceSyncService:
 
     async def _sync_role(
         self,
-        auth: object,
-        role: str,
+        auth: Any,
+        role: Literal["seller", "buyer"],
         date_from: datetime,
         date_to: datetime,
         company_id: int,
