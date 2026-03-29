@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     # Encryption (Fernet key: Fernet.generate_key().decode())
     ENCRYPTION_MASTER_KEY: str = ""
 
+    # KSeF sync
+    KSEF_SYNC_DATE_FROM: str = "2026-01-01"
+    KSEF_EXPORT_POLL_INTERVAL: float = 3.0
+    KSEF_EXPORT_TIMEOUT: float = 300.0
+    KSEF_DOWNLOAD_DIR: str = "/tmp/ksef_exports"
+
     @property
     def DATABASE_URL_asyncpg(self) -> str:
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
