@@ -112,11 +112,14 @@ class TestGetDateFrom:
         return InvoiceSyncService(mock_settings)
 
     def test_first_run_no_hwm(self, service: InvoiceSyncService) -> None:
-        """When HWM is None, should return KSEF_SYNC_DATE_FROM as UTC."""
+        """When HWM is None, should return Jan 1st of the current UTC year."""
         # company_row: (nip, ksef_token, last_sync_hwm_date)
         company_row = ("1234567890", "encrypted_token", None)
         result = service._get_date_from(company_row)
-        assert result == datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+        current_year = datetime.now(timezone.utc).year
+        expected_date = datetime(current_year, 1, 1, tzinfo=timezone.utc)
+        assert result == expected_date
 
     def test_subsequent_run_with_hwm(self, service: InvoiceSyncService) -> None:
         """When HWM is set, should return the HWM datetime."""

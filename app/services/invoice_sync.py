@@ -76,9 +76,10 @@ class InvoiceSyncService:
             if last_hwm.tzinfo is None:
                 return last_hwm.replace(tzinfo=timezone.utc)
             return last_hwm
-        return datetime.fromisoformat(self._settings.KSEF_SYNC_DATE_FROM).replace(
-            tzinfo=timezone.utc,
-        )
+
+        # First-time sync: January 1st of the current year in UTC
+        current_year = datetime.now(timezone.utc).year
+        return datetime(current_year, 1, 1, tzinfo=timezone.utc)
 
     # ------------------------------------------------------------------
     # Date range splitting
