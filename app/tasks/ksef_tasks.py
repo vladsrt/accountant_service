@@ -20,8 +20,8 @@ async def _run_sync(company_id: int) -> dict:
 
     async with async_session_factory() as session:
         result = await service.sync_company(company_id=company_id, db=session)
-        logger.info("Completed async KSeF sync for company_id: %d", company_id)
-        return result
+    logger.info("Completed async KSeF sync for company_id: %d", company_id)
+    return result
 
 
 @celery_app.task(bind=True, max_retries=5, name="sync_company_task")
