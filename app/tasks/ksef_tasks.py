@@ -20,6 +20,22 @@ async def _run_sync(company_id: int) -> dict:
 
     async with async_session_factory() as session:
         result = await service.sync_company(company_id=company_id, db=session)
+
+        # Post-sync metadata hook for RAG/LLM pipelines
+        try:
+            from app.services.llm_payload_service import LLMPayloadService
+
+            unclassified = await LLMPayloadService.get_unclassified_payload(
+                company_id=company_id, db=session
+            )
+            logger.info(
+                "AI Classification Prep: %d unclassified invoices ready for company_id: %d",
+                len(unclassified),
+                company_id,
+            )
+        except Exception as exc:
+            logger.exception("Failed to retrieve unclassified payload count: %s", exc)
+
     logger.info("Completed async KSeF sync for company_id: %d", company_id)
     return result
 
