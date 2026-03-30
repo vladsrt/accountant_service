@@ -20,10 +20,12 @@ class Settings(BaseSettings):
     ENCRYPTION_MASTER_KEY: str = ""
 
     # KSeF sync
-    KSEF_SYNC_DATE_FROM: str = "2026-01-01"
     KSEF_EXPORT_POLL_INTERVAL: float = 3.0
     KSEF_EXPORT_TIMEOUT: float = 300.0
     KSEF_DOWNLOAD_DIR: str = "/tmp/ksef_exports"
+
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     @property
     def DATABASE_URL_asyncpg(self) -> str:
