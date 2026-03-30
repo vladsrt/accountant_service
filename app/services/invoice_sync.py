@@ -504,27 +504,10 @@ class InvoiceSyncService:
                 f"Seller export failed for company_id={company_id}: {exc}"
             ) from exc
 
-        # 6. Sync buyer invoices
-        try:
-            buyer_results, buyer_hwm = await self._sync_role(
-                auth=auth,
-                role="buyer",
-                date_from=date_from,
-                date_to=date_to,
-                company_id=company_id,
-                company_nip=nip,
-                db=db,
-            )
-        except Exception as exc:
-            raise InvoiceSyncError(
-                f"Buyer export failed for company_id={company_id}: {exc}"
-            ) from exc
+        # 6. Determine exact HWM to persist
+        final_hwm = seller_hwm if seller_hwm is not None else date_to
 
-        # 7. Determine exact HWM to persist
-        hwms = [h for h in (seller_hwm, buyer_hwm) if h is not None]
-        final_hwm = max(hwms) if hwms else date_to
-
-        # 8. Update high-water-mark
+        # 7. Update high-water-mark
         hwm_stmt = text("""
             UPDATE companies
             SET last_sync_hwm_date = :hwm
@@ -535,13 +518,13 @@ class InvoiceSyncService:
             {"hwm": final_hwm.isoformat(), "company_id": company_id},
         )
 
-        # 9. Commit
+        # 8. Commit
         await db.commit()
 
         summary = {
             "company_id": company_id,
             "seller_invoices": len(seller_results),
-            "buyer_invoices": len(buyer_results),
+            "buyer_invoices": 0,  # Deprecated per MVP scope
             "sync_date_from": date_from.isoformat(),
             "sync_date_to": date_to.isoformat(),
         }

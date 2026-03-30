@@ -44,6 +44,10 @@ class Invoice(Base):
     )
     parsed_payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
+    # AI Classification Prep Fields
+    tax_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    is_classified: Mapped[bool] = mapped_column(default=False, nullable=False, index=True)
+
     # Back-reference to Company (many-to-one)
     company: Mapped[Company] = relationship(back_populates="invoices")
 
