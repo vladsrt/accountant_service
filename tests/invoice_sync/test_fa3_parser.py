@@ -142,6 +142,27 @@ class TestFA3ParserBasic:
         result = FA3Parser.parse(xml)
         assert len(result["p7_descriptions"]) == 3
 
+    def test_parse_nip_sanitization(self) -> None:
+        """NIPs should have hyphens and spaces stripped out."""
+        xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+  <Podmiot1>
+    <DaneIdentyfikacyjne><NIP>521-300-01-11</NIP></DaneIdentyfikacyjne>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne><NIP>123 456 78 90</NIP></DaneIdentyfikacyjne>
+  </Podmiot2>
+  <Fa>
+    <P_1>2026-03-01</P_1>
+    <P_2>FV/2026/03/001</P_2>
+    <P_15>500.00</P_15>
+  </Fa>
+</Faktura>"""
+        result = FA3Parser.parse(xml)
+        assert result["seller_nip"] == "5213000111"
+        assert result["buyer_nip"] == "1234567890"
+
 
 # ---------------------------------------------------------------------------
 # TestFA3ParserNamespace

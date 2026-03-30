@@ -153,7 +153,7 @@ class FA3Parser:
         xpath = f".//ns:{podmiot_tag}/ns:DaneIdentyfikacyjne/ns:NIP"
         result = FA3Parser._find_text(root, xpath, ns_map)
         if result:
-            return result
+            return result.replace("-", "").replace(" ", "")
 
         # Fallback: namespace-agnostic iteration
         for podmiot in root.iter():
@@ -167,7 +167,7 @@ class FA3Parser:
                                 nip_el.tag.split("}")[-1] if "}" in nip_el.tag else nip_el.tag
                             )
                             if nip_local == "NIP" and nip_el.text:
-                                return nip_el.text.strip()
+                                return nip_el.text.strip().replace("-", "").replace(" ", "")
         return None
 
     @staticmethod
