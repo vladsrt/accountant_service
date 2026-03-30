@@ -1,13 +1,14 @@
 """Celery worker setup for background tasks."""
 
 import os
-
 from celery import Celery
+from app.core.config import settings
 
 # Initialize Celery app
 celery_app = Celery(
     "accountant_service_worker",
-    broker=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
+    broker=settings.REDIS_URL,
+    backend=settings.REDIS_URL,
     include=["app.tasks.ksef_tasks"],
 )
 
