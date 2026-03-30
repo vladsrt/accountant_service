@@ -56,3 +56,4 @@ def sync_company_task(self, company_id: int) -> dict | None:
                 company_id,
             )
             raise
+    return None
