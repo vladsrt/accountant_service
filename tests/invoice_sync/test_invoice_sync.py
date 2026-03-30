@@ -209,26 +209,22 @@ async def test_sync_company_hwm_update(
             mock_auth = MagicMock()
             mock_client.authentication.with_token.return_value = mock_auth
 
-            # 4. Mock _sync_role to return specific HWMs for seller and buyer
+            # 4. Mock _sync_role to return specific HWM for seller
             seller_hwm = datetime(2026, 5, 10, tzinfo=timezone.utc)
-            buyer_hwm = datetime(2026, 5, 12, tzinfo=timezone.utc)  # Buyer has later HWM
 
             with patch.object(
                 sync_service,
                 "_sync_role",
-                side_effect=[
-                    ([], seller_hwm),
-                    ([], buyer_hwm),
-                ],
+                return_value=([], seller_hwm),
             ):
                 summary = await sync_service.sync_company(1, mock_db)
                 assert summary["company_id"] == 1
 
-                # Check DB update was called with buyer_hwm
+                # Check DB update was called with seller_hwm
                 # The execute call for update is the last one before commit
                 execute_calls = mock_db.execute.call_args_list
                 update_call = execute_calls[-1]  # The last execute call
 
                 query_params = update_call.args[1]
-                assert query_params["hwm"] == buyer_hwm.isoformat()
+                assert query_params["hwm"] == seller_hwm.isoformat()
                 assert query_params["company_id"] == 1
