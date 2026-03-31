@@ -38,6 +38,10 @@ class InvoiceSyncError(Exception):
     """Raised when the invoice sync process encounters an unrecoverable error."""
 
 
+class InvoiceSyncPermanentError(InvoiceSyncError):
+    """Raised for failures that must never be retried (bad config, missing entity, wrong key)."""
+
+
 # ---------------------------------------------------------------------------
 # Service
 # ---------------------------------------------------------------------------
@@ -234,69 +238,73 @@ class InvoiceSyncService:
                 last_storage_date: datetime | None = None
 
                 # 4. Parse files and map metadata
-                for path in paths:
-                    # Parse metadata JSON
-                    if "metadata" in path.name.lower() and path.suffix == ".json":
-                        try:
-                            meta = json.loads(path.read_text(encoding="utf-8"))
-
-                            # Extract permanentStorageHwmDate
-                            hwm_str = meta.get("permanentStorageHwmDate")
-                            if hwm_str:
-                                hwm_dt = datetime.fromisoformat(hwm_str).replace(
-                                    tzinfo=timezone.utc
-                                )
-                                if max_hwm is None or hwm_dt > max_hwm:
-                                    max_hwm = hwm_dt
-
-                            # Extract pagination indicators
-                            is_truncated = meta.get("isTruncated", False)
-                            last_date_str = meta.get("lastPermanentStorageDate")
-                            if last_date_str:
-                                last_storage_date = datetime.fromisoformat(last_date_str).replace(
-                                    tzinfo=timezone.utc
-                                )
-
-                        except Exception:
-                            self.logger.exception("Failed to parse metadata file %s", path.name)
-                        finally:
+                # Collect paths first; a try/finally guarantees cleanup even if
+                # an unexpected exception fires mid-loop (e.g. DB crash).
+                try:
+                    for path in paths:
+                        # Parse metadata JSON
+                        if "metadata" in path.name.lower() and path.suffix == ".json":
                             try:
-                                path.unlink()
-                            except OSError:
-                                pass
-                        continue
+                                meta = json.loads(path.read_text(encoding="utf-8"))
 
-                    # Parse XML file
-                    xml_content = path.read_text(encoding="utf-8")
+                                # Extract permanentStorageHwmDate
+                                hwm_str = meta.get("permanentStorageHwmDate")
+                                if hwm_str:
+                                    hwm_dt = datetime.fromisoformat(hwm_str).replace(
+                                        tzinfo=timezone.utc
+                                    )
+                                    if max_hwm is None or hwm_dt > max_hwm:
+                                        max_hwm = hwm_dt
 
-                    try:
-                        parsed = FA3Parser.parse(xml_content)
-                    except FA3ParseError:
-                        self.logger.exception("Failed to parse XML file %s — skipping", path.name)
-                        ksef_ref = path.stem
-                        await self._upsert_error_invoice(
+                                # Extract pagination indicators
+                                is_truncated = meta.get("isTruncated", False)
+                                last_date_str = meta.get("lastPermanentStorageDate")
+                                if last_date_str:
+                                    last_storage_date = datetime.fromisoformat(
+                                        last_date_str
+                                    ).replace(tzinfo=timezone.utc)
+
+                            except Exception:
+                                self.logger.exception(
+                                    "Failed to parse metadata file %s", path.name
+                                )
+                            continue
+
+                        # Parse XML file
+                        xml_content = path.read_text(encoding="utf-8")
+
+                        try:
+                            parsed = FA3Parser.parse(xml_content)
+                        except FA3ParseError:
+                            self.logger.exception(
+                                "Failed to parse XML file %s — skipping", path.name
+                            )
+                            ksef_ref = path.stem
+                            await self._upsert_error_invoice(
+                                company_id=company_id,
+                                ksef_reference_number=ksef_ref,
+                                xml_content=xml_content,
+                                db=db,
+                            )
+                            continue
+
+                        if not parsed.get("ksef_reference_number"):
+                            parsed["ksef_reference_number"] = path.stem
+
+                        await self._upsert_invoice(
                             company_id=company_id,
-                            ksef_reference_number=ksef_ref,
+                            parsed=parsed,
                             xml_content=xml_content,
                             db=db,
                         )
-                        continue
+                        parsed_results.append(parsed)
 
-                    if not parsed.get("ksef_reference_number"):
-                        parsed["ksef_reference_number"] = path.stem
-
-                    await self._upsert_invoice(
-                        company_id=company_id,
-                        parsed=parsed,
-                        xml_content=xml_content,
-                        db=db,
-                    )
-                    parsed_results.append(parsed)
-
-                    try:
-                        path.unlink()
-                    except OSError:
-                        self.logger.warning("Could not delete temp file %s", path)
+                finally:
+                    for path in paths:
+                        try:
+                            path.unlink(missing_ok=True)
+                        except OSError:
+                            self.logger.warning("Could not delete temp file %s", path)
 
                 # 5. Handle pagination
                 if is_truncated and last_storage_date:
@@ -448,7 +456,7 @@ class InvoiceSyncService:
         company_row = result.fetchone()
 
         if company_row is None:
-            raise InvoiceSyncError(f"Company with id={company_id} not found")
+            raise InvoiceSyncPermanentError(f"Company with id={company_id} not found")
 
         nip: str = company_row[0]
         encrypted_token: str = company_row[1]
@@ -460,8 +468,9 @@ class InvoiceSyncService:
                 encrypted_token, self._settings.ENCRYPTION_MASTER_KEY
             )
         except Exception as exc:
-            raise InvoiceSyncError(
-                f"Failed to decrypt ksef_token for company_id={company_id}: {exc}"
+            # Wrong key or corrupt ciphertext — permanent, no point retrying
+            raise InvoiceSyncPermanentError(
+                f"Failed to decrypt ksef_token for company_id={company_id}"
             ) from exc
 
         # 3. Authenticate with SDK
@@ -478,9 +487,12 @@ class InvoiceSyncService:
                 nip=nip,
             )
         except Exception as exc:
+            # Do NOT interpolate exc — the SDK may embed the decrypted token in its repr
             raise InvoiceSyncError(
-                f"KSeF authentication failed for company_id={company_id}: {exc}"
+                f"KSeF authentication failed for company_id={company_id}"
             ) from exc
+        finally:
+            del decrypted_token
 
         # 4. Determine date window
         date_from = self._get_date_from(company_row)
@@ -515,7 +527,7 @@ class InvoiceSyncService:
         """)
         await db.execute(
             hwm_stmt,
-            {"hwm": final_hwm.isoformat(), "company_id": company_id},
+            {"hwm": final_hwm, "company_id": company_id},
         )
 
         # 8. Commit

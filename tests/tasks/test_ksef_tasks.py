@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
-from app.services.invoice_sync import InvoiceSyncError
+from app.services.invoice_sync import InvoiceSyncError, InvoiceSyncPermanentError
 from app.tasks.ksef_tasks import sync_company_task
 
 
@@ -40,10 +40,10 @@ def test_sync_company_task_retry_on_failure() -> None:
 
                 # Verify self.retry was called
                 mock_retry.assert_called_once()
-                # Ensure countdown matches exponential backoff (2 ** retries)
+                # Ensure countdown matches minutes-scale backoff: min(2**retries * 60, 3600)
                 args, kwargs = mock_retry.call_args
                 assert kwargs["exc"] == mock_error
-                assert kwargs["countdown"] == 4  # 2 ** 2
+                assert kwargs["countdown"] == 240  # min(2**2 * 60, 3600)
             finally:
                 sync_company_task.pop_request()
 
@@ -68,5 +68,25 @@ def test_sync_company_task_max_retries() -> None:
                     assert False, "Should have raised exception"
                 except sync_company_task.MaxRetriesExceededError as e:
                     assert str(e) == "Max Retries Reached"
+            finally:
+                sync_company_task.pop_request()
+
+
+def test_sync_company_task_permanent_error_no_retry() -> None:
+    """InvoiceSyncPermanentError must propagate immediately without calling self.retry."""
+
+    with patch("app.tasks.ksef_tasks._run_sync", new_callable=AsyncMock) as mock_run_sync:
+        mock_run_sync.side_effect = InvoiceSyncPermanentError("Company not found")
+
+        with patch("celery.app.task.Task.retry") as mock_retry:
+            sync_company_task.push_request(retries=0)
+            try:
+                try:
+                    sync_company_task(1)
+                    assert False, "Should have raised InvoiceSyncPermanentError"
+                except InvoiceSyncPermanentError:
+                    pass
+
+                mock_retry.assert_not_called()
             finally:
                 sync_company_task.pop_request()

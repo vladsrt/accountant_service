@@ -226,5 +226,5 @@ async def test_sync_company_hwm_update(
                 update_call = execute_calls[-1]  # The last execute call
 
                 query_params = update_call.args[1]
-                assert query_params["hwm"] == seller_hwm.isoformat()
+                assert query_params["hwm"] == seller_hwm
                 assert query_params["company_id"] == 1
