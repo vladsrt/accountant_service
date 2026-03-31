@@ -22,30 +22,34 @@ async def test_company(real_db_session: AsyncSession) -> int:
     encrypted via Fernet.
     Teardown: Deletes the test company and its KSeF session from the DB.
     """
-    company_id = 99999
-
-    # Pre-cleanup in case a previous test run failed mid-execution
-    await real_db_session.execute(delete(KsefSession).where(KsefSession.company_id == company_id))
-    await real_db_session.execute(delete(Company).where(Company.id == company_id))
-    await real_db_session.commit()
-
     # Ensure settings actually have values so we don't insert empty credentials
     if not settings.KSEF_NIP or not settings.KSEF_TOKEN or not settings.ENCRYPTION_MASTER_KEY:
         pytest.skip(
             "Skipping integration test: Missing KSEF_NIP, KSEF_TOKEN or ENCRYPTION_MASTER_KEY in settings."
         )
 
+    # Pre-cleanup by NIP in case a previous test run failed mid-execution
+    existing = await real_db_session.execute(
+        select(Company.id).where(Company.nip == settings.KSEF_NIP)
+    )
+    existing_id = existing.scalar_one_or_none()
+    if existing_id is not None:
+        await real_db_session.execute(
+            delete(KsefSession).where(KsefSession.company_id == existing_id)
+        )
+        await real_db_session.execute(delete(Company).where(Company.id == existing_id))
+        await real_db_session.commit()
+
     # Encrypt the real (test environment) token using the master key
     encrypted_token = CryptoUtil.encrypt(settings.KSEF_TOKEN, settings.ENCRYPTION_MASTER_KEY)
 
-    # Insert test company
-    await real_db_session.execute(
-        insert(Company).values(
-            id=company_id,
-            nip=settings.KSEF_NIP,
-            ksef_token=encrypted_token,
-        )
+    # Insert test company; let PostgreSQL GENERATED ALWAYS AS IDENTITY assign the id
+    result = await real_db_session.execute(
+        insert(Company)
+        .values(nip=settings.KSEF_NIP, ksef_token=encrypted_token)
+        .returning(Company.id)
     )
+    company_id: int = result.scalar_one()
     await real_db_session.commit()
 
     yield company_id
@@ -80,6 +84,7 @@ async def test_ensure_valid_session_real_api(test_company: int, real_db_session:
 
     assert ksef_session is not None
     assert ksef_session.company_id == test_company
-    assert ksef_session.access_token == token
+    # access_token is stored encrypted; decrypt before comparing to the returned plaintext token
+    assert CryptoUtil.decrypt(ksef_session.access_token, settings.ENCRYPTION_MASTER_KEY) == token
     assert ksef_session.refresh_token is not None
     assert ksef_session.expires_at is not None

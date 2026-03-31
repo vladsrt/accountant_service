@@ -265,9 +265,7 @@ class InvoiceSyncService:
                                     ).replace(tzinfo=timezone.utc)
 
                             except Exception:
-                                self.logger.exception(
-                                    "Failed to parse metadata file %s", path.name
-                                )
+                                self.logger.exception("Failed to parse metadata file %s", path.name)
                             continue
 
                         # Parse XML file

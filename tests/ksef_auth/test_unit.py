@@ -24,7 +24,6 @@ def _enc(value: str, master_key: str) -> str:
     return CryptoUtil.encrypt(value, master_key)
 
 
-@pytest.mark.asyncio
 class TestCryptoUtilAndEnv:
     def test_encrypt_decrypt_success(self, master_key: str):
         plaintext = "secret_ksef_token_123!"

@@ -9,7 +9,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.core.config import settings
 from app.db.database import create_worker_engine
-from app.services.invoice_sync import InvoiceSyncError, InvoiceSyncPermanentError, InvoiceSyncService
+from app.services.invoice_sync import (
+    InvoiceSyncPermanentError,
+    InvoiceSyncService,
+)
 from app.worker import celery_app
 
 logger = logging.getLogger(__name__)
@@ -84,7 +87,7 @@ def sync_company_task(self, company_id: int) -> dict | None:
         )
         # Minutes-scale exponential backoff capped at 1 hour:
         # retries 0-5 → 60s, 120s, 240s, 480s, 960s, 1920s (capped at 3600s)
-        countdown = min(2 ** self.request.retries * 60, 3600)
+        countdown = min(2**self.request.retries * 60, 3600)
 
         try:
             self.retry(exc=exc, countdown=countdown)

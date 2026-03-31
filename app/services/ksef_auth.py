@@ -123,10 +123,10 @@ class KsefAuthService:
             return {
                 "access_token": authenticated.auth_tokens.access_token.token,
                 "refresh_token": authenticated.auth_tokens.refresh_token.token,
-                "expires_at": authenticated.auth_tokens.access_token.valid_until.isoformat(),
+                "expires_at": authenticated.auth_tokens.access_token.valid_until,
             }
 
-    def _sdk_refresh(self, refresh_token: str) -> dict[str, str]:
+    def _sdk_refresh(self, refresh_token: str) -> dict:
         """Refresh an access token via SDK (synchronous, called in a thread).
 
         Returns:
@@ -136,7 +136,7 @@ class KsefAuthService:
             refreshed = client.authentication.refresh(refresh_token=refresh_token)
             return {
                 "access_token": refreshed.access_token.token,
-                "expires_at": refreshed.access_token.valid_until.isoformat(),
+                "expires_at": refreshed.access_token.valid_until,
             }
 
     # ------------------------------------------------------------------

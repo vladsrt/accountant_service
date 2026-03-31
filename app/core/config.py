@@ -34,14 +34,12 @@ class Settings(BaseSettings):
         if not self.ENCRYPTION_MASTER_KEY:
             raise ValueError(
                 "ENCRYPTION_MASTER_KEY must be set. "
-                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+                'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
             )
         try:
             Fernet(self.ENCRYPTION_MASTER_KEY.encode())
         except Exception as exc:
-            raise ValueError(
-                "ENCRYPTION_MASTER_KEY is not a valid Fernet key"
-            ) from exc
+            raise ValueError("ENCRYPTION_MASTER_KEY is not a valid Fernet key") from exc
         return self
 
     @property
