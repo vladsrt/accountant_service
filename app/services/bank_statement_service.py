@@ -1,23 +1,34 @@
 """
-Bank Statement CSV parsing service.
+Bank Statement CSV parsing and ingestion service.
 
 Wraps the bank2ynab library to detect Polish bank CSV formats
 (mBank, PKO BP, Bank Pekao, Alior Bank, and others) and convert them
 into a standardised list of YNAB-format dicts.
+
+Extends parsing with YTD validation, outflow filtering, SHA-256
+deduplication, and idempotent PostgreSQL upserts.
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import shutil
 import tempfile
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from bank2ynab.config_handler import ConfigHandler
 from bank2ynab.dataframe_handler import DataframeHandler
 from bank2ynab.transactionfile_reader import detect_encoding, get_files
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models.bank_transaction import BankTransaction
 
 logger = logging.getLogger(__name__)
 
@@ -28,20 +39,76 @@ class BankStatementParseError(Exception):
     """Raised when no bank2ynab configuration matches the uploaded filename."""
 
 
+class BankStatementValidationError(Exception):
+    """Raised when the uploaded statement fails YTD coverage validation."""
+
+
 class BankStatementService:
     """
-    Parses raw CSV bank statement exports into standardised YNAB-format dicts.
-
-    Workflow:
-      1. Write the raw bytes to a secure temporary directory.
-      2. Iterate over every bank section in bank2ynab.conf; the first whose
-         filename pattern matches the uploaded filename is used for parsing.
-      3. Use DataframeHandler directly (no file I/O output) to produce an
-         in-memory dataframe.
-      4. Return the Date, Payee, Memo, Outflow, Inflow columns as a list of dicts.
-      5. Guarantee deletion of the temp directory via try/finally regardless
-         of whether parsing succeeds or fails.
+    Parses raw CSV bank statement exports into standardised YNAB-format dicts,
+    then filters, validates, deduplicates, and upserts them into PostgreSQL.
     """
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    async def process_statement(
+        self,
+        company_id: int,
+        company_registration_date: date | None,
+        file_content: bytes,
+        filename: str,
+        db: AsyncSession,
+    ) -> dict[str, int]:
+        """Full ingestion pipeline: parse → validate → filter → hash → upsert.
+
+        Args:
+            company_id: FK of the owning company.
+            company_registration_date: Optional company registration date.
+                Used to relax the YTD validation start boundary.
+            file_content: Raw bytes of the uploaded CSV file.
+            filename: Original filename for bank2ynab format detection.
+            db: Active async database session.
+
+        Returns:
+            Summary dict with ``total_parsed``, ``new_inserted``, and
+            ``duplicates_ignored`` counts.
+
+        Raises:
+            BankStatementParseError: If the CSV cannot be parsed.
+            BankStatementValidationError: If the statement does not cover
+                the required YTD date range.
+        """
+        # 1. Parse
+        rows = await self.parse_csv(file_content, filename)
+        total_parsed = len(rows)
+
+        if total_parsed == 0:
+            return {"total_parsed": 0, "new_inserted": 0, "duplicates_ignored": 0}
+
+        # 2. Hard validation (Story 3) — YTD coverage check
+        self._validate_ytd_coverage(rows, company_registration_date)
+
+        # 3. Filtering (Story 2) — keep only positive inflows
+        filtered = self._filter_inflows(rows)
+
+        if not filtered:
+            return {"total_parsed": total_parsed, "new_inserted": 0, "duplicates_ignored": 0}
+
+        # 4. Hashing & Deduplication (Story 4)
+        records = self._prepare_records(filtered, company_id)
+
+        # 5. Database upsert
+        new_inserted = await self._bulk_upsert(records, db)
+
+        duplicates_ignored = len(records) - new_inserted
+
+        return {
+            "total_parsed": total_parsed,
+            "new_inserted": new_inserted,
+            "duplicates_ignored": duplicates_ignored,
+        }
 
     async def parse_csv(self, file_content: bytes, filename: str) -> list[dict]:
         """Parse a raw CSV bank statement and return standardised rows.
@@ -65,6 +132,118 @@ class BankStatementService:
                 filename, or if bank2ynab's configuration file cannot be found.
         """
         return await asyncio.to_thread(self._parse_sync, file_content, filename)
+
+    # ------------------------------------------------------------------
+    # Pipeline steps (private)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _validate_ytd_coverage(
+        rows: list[dict],
+        company_registration_date: date | None,
+    ) -> None:
+        """Validate that the statement covers the required YTD start date.
+
+        Raises:
+            BankStatementValidationError: If the earliest row date is
+                strictly after the required start date.
+        """
+        # Determine required start date
+        jan_1 = date(datetime.now(timezone.utc).year, 1, 1)
+        required_start = jan_1
+
+        if company_registration_date is not None and company_registration_date > jan_1:
+            required_start = company_registration_date
+
+        # Find MIN(Date) from rows
+        dates: list[date] = []
+        for row in rows:
+            raw_date = row.get("Date")
+            if raw_date:
+                if isinstance(raw_date, str):
+                    dates.append(date.fromisoformat(raw_date))
+                elif isinstance(raw_date, date):
+                    dates.append(raw_date)
+
+        if not dates:
+            return  # No dates to validate — pass through
+
+        min_date = min(dates)
+
+        if min_date > required_start:
+            raise BankStatementValidationError(
+                "Для 100% гарантии правильности налогов, "
+                "пожалуйста, загрузите выписку строго с начала года "
+                "(или с даты регистрации)."
+            )
+
+    @staticmethod
+    def _filter_inflows(rows: list[dict]) -> list[dict]:
+        """Keep only rows with positive Inflow and zero/no Outflow."""
+        filtered: list[dict] = []
+        for row in rows:
+            outflow = float(row.get("Outflow") or 0)
+            inflow = float(row.get("Inflow") or 0)
+
+            if outflow > 0 or inflow <= 0:
+                continue
+
+            filtered.append(row)
+
+        return filtered
+
+    @staticmethod
+    def _compute_hash(company_id: int, row: dict) -> str:
+        """Compute a deterministic SHA-256 hash for a transaction row.
+
+        Format: ``{company_id}|{date}|{amount}|{payee or ''}|{memo or ''}``
+        """
+        raw = (
+            f"{company_id}"
+            f"|{row.get('Date', '')}"
+            f"|{row.get('Inflow', '')}"
+            f"|{row.get('Payee') or ''}"
+            f"|{row.get('Memo') or ''}"
+        )
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def _prepare_records(cls, rows: list[dict], company_id: int) -> list[dict[str, Any]]:
+        """Transform filtered rows into DB-ready dicts with hashes."""
+        records: list[dict[str, Any]] = []
+        for row in rows:
+            tx_hash = cls._compute_hash(company_id, row)
+            records.append(
+                {
+                    "company_id": company_id,
+                    "date": row["Date"],
+                    "amount": Decimal(str(row["Inflow"])),
+                    "payee": row.get("Payee"),
+                    "memo": row.get("Memo"),
+                    "transaction_hash": tx_hash,
+                    "status": "UNMATCHED",
+                }
+            )
+        return records
+
+    @staticmethod
+    async def _bulk_upsert(records: list[dict[str, Any]], db: AsyncSession) -> int:
+        """Bulk insert with ON CONFLICT DO NOTHING for idempotency.
+
+        Returns:
+            Number of rows actually inserted (excludes duplicates).
+        """
+        stmt = pg_insert(BankTransaction).values(records)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["transaction_hash"])
+
+        result = await db.execute(stmt)
+        await db.commit()
+
+        return result.rowcount  # type: ignore[attr-defined]
+
+    # ------------------------------------------------------------------
+    # CSV parsing internals
+    # ------------------------------------------------------------------
 
     def _parse_sync(self, file_content: bytes, filename: str) -> list[dict]:
         """Synchronous core invoked inside a thread by parse_csv."""

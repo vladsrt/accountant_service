@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.routers.bank import router as bank_router
 from app.api.routers.ksef import router as ksef_router
 
 app = FastAPI(
@@ -9,6 +10,7 @@ app = FastAPI(
 )
 
 app.include_router(ksef_router)
+app.include_router(bank_router)
 
 
 @app.get("/")
