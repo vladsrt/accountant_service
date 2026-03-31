@@ -14,8 +14,16 @@ from app.services.ksef_auth import (
     _resolve_environment,
 )
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
+
+def _enc(value: str, master_key: str) -> str:
+    """Shorthand: encrypt a plaintext string with the given Fernet master key."""
+    return CryptoUtil.encrypt(value, master_key)
+
+
 class TestCryptoUtilAndEnv:
     def test_encrypt_decrypt_success(self, master_key: str):
         plaintext = "secret_ksef_token_123!"
@@ -60,14 +68,19 @@ class TestKsefAuthService:
         self,
         ksef_auth_service: KsefAuthService,
         mock_db_session: AsyncMock,
+        master_key: str,
     ):
         """1. Valid Session: db returns a session expiring in 2 hours."""
         company_id = 1
         valid_until = datetime.now(timezone.utc) + timedelta(hours=2)
 
-        # Mock result for the first select (ksef session)
+        # DB stores tokens encrypted; service must decrypt before returning
         mock_result = MagicMock()
-        mock_result.fetchone.return_value = ("access_123", "refresh_123", valid_until)
+        mock_result.fetchone.return_value = (
+            _enc("access_123", master_key),
+            _enc("refresh_123", master_key),
+            valid_until,
+        )
         mock_db_session.execute.return_value = mock_result
 
         with patch("app.services.ksef_auth.Client") as sdk_mock:
@@ -82,6 +95,7 @@ class TestKsefAuthService:
         self,
         ksef_auth_service: KsefAuthService,
         mock_db_session: AsyncMock,
+        master_key: str,
     ):
         """2. Refresh Session: session is about to expire, sdk is called to refresh."""
         company_id = 1
@@ -90,14 +104,18 @@ class TestKsefAuthService:
         new_valid_until = datetime.now(timezone.utc) + timedelta(hours=2)
 
         # Setup db interactions
-        # 1st call: select ksef session (ensure_valid_session)
-        # 2nd call: select refresh token (inside _refresh_session)
+        # 1st call: select ksef session (ensure_valid_session) — returns encrypted tokens
+        # 2nd call: select refresh token (inside _refresh_session) — returns encrypted refresh
         # 3rd call: update session table
         mock_result_1 = MagicMock()
-        mock_result_1.fetchone.return_value = ("old_access", "old_refresh", expiring_soon)
+        mock_result_1.fetchone.return_value = (
+            _enc("old_access", master_key),
+            _enc("old_refresh", master_key),
+            expiring_soon,
+        )
 
         mock_result_2 = MagicMock()
-        mock_result_2.scalar_one_or_none.return_value = "old_refresh"
+        mock_result_2.scalar_one_or_none.return_value = _enc("old_refresh", master_key)
 
         mock_db_session.execute.side_effect = [mock_result_1, mock_result_2, MagicMock()]
 
@@ -115,6 +133,7 @@ class TestKsefAuthService:
 
             assert token == "new_access_123"
             assert mock_db_session.execute.call_count == 3
+            # SDK must receive the decrypted refresh token
             mock_client.authentication.refresh.assert_called_once_with(refresh_token="old_refresh")
             mock_db_session.commit.assert_called_once()
 

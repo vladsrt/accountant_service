@@ -1,3 +1,5 @@
+from cryptography.fernet import Fernet
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +28,19 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+
+    @model_validator(mode="after")
+    def validate_encryption_master_key(self) -> "Settings":
+        if not self.ENCRYPTION_MASTER_KEY:
+            raise ValueError(
+                "ENCRYPTION_MASTER_KEY must be set. "
+                'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+            )
+        try:
+            Fernet(self.ENCRYPTION_MASTER_KEY.encode())
+        except Exception as exc:
+            raise ValueError("ENCRYPTION_MASTER_KEY is not a valid Fernet key") from exc
+        return self
 
     @property
     def DATABASE_URL_asyncpg(self) -> str:

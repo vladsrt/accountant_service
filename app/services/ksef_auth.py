@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
 from ksef2 import Client, Environment
@@ -109,7 +110,7 @@ class KsefAuthService:
     # SDK wrappers (sync → async via to_thread)
     # ------------------------------------------------------------------
 
-    def _sdk_authenticate(self, ksef_token: str, nip: str) -> dict[str, str]:
+    def _sdk_authenticate(self, ksef_token: str, nip: str) -> dict[str, Any]:
         """Run the full SDK token auth flow (synchronous, called in a thread).
 
         Returns:
@@ -123,10 +124,10 @@ class KsefAuthService:
             return {
                 "access_token": authenticated.auth_tokens.access_token.token,
                 "refresh_token": authenticated.auth_tokens.refresh_token.token,
-                "expires_at": authenticated.auth_tokens.access_token.valid_until.isoformat(),
+                "expires_at": authenticated.auth_tokens.access_token.valid_until,
             }
 
-    def _sdk_refresh(self, refresh_token: str) -> dict[str, str]:
+    def _sdk_refresh(self, refresh_token: str) -> dict[str, Any]:
         """Refresh an access token via SDK (synchronous, called in a thread).
 
         Returns:
@@ -136,7 +137,7 @@ class KsefAuthService:
             refreshed = client.authentication.refresh(refresh_token=refresh_token)
             return {
                 "access_token": refreshed.access_token.token,
-                "expires_at": refreshed.access_token.valid_until.isoformat(),
+                "expires_at": refreshed.access_token.valid_until,
             }
 
     # ------------------------------------------------------------------
@@ -149,8 +150,15 @@ class KsefAuthService:
         tokens: dict[str, str],
         db: AsyncSession,
     ) -> None:
-        """Upsert a KSeF session row for the given company."""
+        """Upsert a KSeF session row for the given company.
+
+        Both access_token and refresh_token are encrypted at rest with Fernet
+        before being persisted, matching the protection applied to ksef_token.
+        """
         self.logger.info("Saving KSeF session for company_id=%d", company_id)
+
+        encrypted_access = CryptoUtil.encrypt(tokens["access_token"], self._master_key)
+        encrypted_refresh = CryptoUtil.encrypt(tokens["refresh_token"], self._master_key)
 
         stmt = text("""
             INSERT INTO ksef_sessions (company_id, access_token, refresh_token, expires_at)
@@ -165,8 +173,8 @@ class KsefAuthService:
             stmt,
             {
                 "company_id": company_id,
-                "access_token": tokens["access_token"],
-                "refresh_token": tokens["refresh_token"],
+                "access_token": encrypted_access,
+                "refresh_token": encrypted_refresh,
                 "expires_at": tokens["expires_at"],
             },
         )
@@ -181,26 +189,32 @@ class KsefAuthService:
     ) -> str:
         """Refresh an existing KSeF session via SDK and persist new tokens.
 
+        Decrypts the stored refresh_token before passing it to the SDK, and
+        re-encrypts the new access_token before writing it back.
+
         Returns:
-            The new access_token.
+            The new plaintext access_token (for immediate in-memory use).
         """
-        # Load current session from DB
         # Load current session from DB via SQLAlchemy ORM
         stmt = select(KsefSession.refresh_token).where(KsefSession.company_id == company_id)
         result = await db.execute(stmt)
-        refresh_token = result.scalar_one_or_none()
+        encrypted_refresh = result.scalar_one_or_none()
 
-        if refresh_token is None:
+        if encrypted_refresh is None:
             raise KsefSessionNotFoundError(f"No KSeF session found for company_id={company_id}")
+
+        refresh_token = CryptoUtil.decrypt(encrypted_refresh, self._master_key)
 
         self.logger.info("Refreshing session via SDK (company_id=%d)", company_id)
         refreshed = await asyncio.to_thread(self._sdk_refresh, refresh_token)
+
+        encrypted_new_access = CryptoUtil.encrypt(refreshed["access_token"], self._master_key)
 
         # Update only access_token and expires_at; refresh_token stays unchanged
         update_stmt = (
             update(KsefSession)
             .where(KsefSession.company_id == company_id)
-            .values(access_token=refreshed["access_token"], expires_at=refreshed["expires_at"])
+            .values(access_token=encrypted_new_access, expires_at=refreshed["expires_at"])
         )
         await db.execute(update_stmt)
         await db.commit()
@@ -237,7 +251,7 @@ class KsefAuthService:
         row = result.fetchone()
 
         if row is not None:
-            access_token, _refresh_token, expires_at = row
+            encrypted_access, _encrypted_refresh, expires_at = row
 
             # Ensure expires_at is offset-aware
             if expires_at.tzinfo is None:
@@ -247,7 +261,7 @@ class KsefAuthService:
 
             if time_left > self._REFRESH_THRESHOLD:
                 self.logger.info("Existing session still valid (expires in %s)", time_left)
-                return access_token
+                return CryptoUtil.decrypt(encrypted_access, self._master_key)
 
             self.logger.info("Session expiring soon (in %s), refreshing…", time_left)
             return await self._refresh_session(company_id, db)
