@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
+    "bank2ynab",
     "celery>=5.6.3",
     "cryptography>=46.0.6",
     "fastapi>=0.135.2",
@@ -50,3 +51,6 @@ markers = [
 namespace_packages = true
 explicit_package_bases = true
 ignore_missing_imports = true
+
+[tool.uv.sources]
+bank2ynab = { git = "https://github.com/bank2ynab/bank2ynab.git" }
