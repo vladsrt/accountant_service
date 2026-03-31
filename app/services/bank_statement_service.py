@@ -239,7 +239,7 @@ class BankStatementService:
         result = await db.execute(stmt)
         await db.commit()
 
-        return result.rowcount  # type: ignore[return-value]
+        return result.rowcount  # type: ignore[attr-defined]
 
     # ------------------------------------------------------------------
     # CSV parsing internals
