@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
 from ksef2 import Client, Environment
@@ -109,7 +110,7 @@ class KsefAuthService:
     # SDK wrappers (sync → async via to_thread)
     # ------------------------------------------------------------------
 
-    def _sdk_authenticate(self, ksef_token: str, nip: str) -> dict[str, str]:
+    def _sdk_authenticate(self, ksef_token: str, nip: str) -> dict[str, Any]:
         """Run the full SDK token auth flow (synchronous, called in a thread).
 
         Returns:
@@ -126,7 +127,7 @@ class KsefAuthService:
                 "expires_at": authenticated.auth_tokens.access_token.valid_until,
             }
 
-    def _sdk_refresh(self, refresh_token: str) -> dict:
+    def _sdk_refresh(self, refresh_token: str) -> dict[str, Any]:
         """Refresh an access token via SDK (synchronous, called in a thread).
 
         Returns:
