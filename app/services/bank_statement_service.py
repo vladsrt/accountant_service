@@ -104,9 +104,7 @@ class BankStatementService:
         try:
             config_handler = ConfigHandler()
         except FileNotFoundError as exc:
-            raise BankStatementParseError(
-                "bank2ynab configuration file not found"
-            ) from exc
+            raise BankStatementParseError("bank2ynab configuration file not found") from exc
 
         for section in config_handler.config.sections():
             config_dict = config_handler.fix_conf_params(section)
@@ -155,11 +153,7 @@ class BankStatementService:
                 return []
 
             available = [c for c in STANDARD_COLUMNS if c in df_handler.output_df.columns]
-            return (
-                df_handler.output_df[available]
-                .replace({np.nan: None})
-                .to_dict(orient="records")
-            )
+            return df_handler.output_df[available].replace({np.nan: None}).to_dict(orient="records")
 
         raise BankStatementParseError(
             f"No bank2ynab configuration matched filename: '{filename}'. "

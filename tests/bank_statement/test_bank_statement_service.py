@@ -37,7 +37,13 @@ MBANK_CSV_BYTES = (
 
 PARSED_ROWS = [
     {"Date": "2023-08-01", "Payee": "Zus", "Memo": "Zus", "Outflow": 1500.0, "Inflow": 0.0},
-    {"Date": "2023-08-02", "Payee": "Allegrosy", "Memo": "Allegrosy", "Outflow": 0.0, "Inflow": 200.0},
+    {
+        "Date": "2023-08-02",
+        "Payee": "Allegrosy",
+        "Memo": "Allegrosy",
+        "Outflow": 0.0,
+        "Inflow": 200.0,
+    },
 ]
 
 
@@ -135,7 +141,9 @@ def _make_output_df() -> pd.DataFrame:
     )
 
 
-def test_detect_and_parse_returns_standard_columns(service: BankStatementService, tmp_path: Path) -> None:
+def test_detect_and_parse_returns_standard_columns(
+    service: BankStatementService, tmp_path: Path
+) -> None:
     """_detect_and_parse should select only the five STANDARD_COLUMNS from output_df."""
     test_file = tmp_path / MBANK_FILENAME
     test_file.write_bytes(MBANK_CSV_BYTES)
@@ -154,7 +162,16 @@ def test_detect_and_parse_returns_standard_columns(service: BankStatementService
         "footer_rows": 0,
         "input_columns": ["Date", "skip", "Memo", "skip", "Payee", "skip", "Inflow", "skip"],
         "output_columns": ["Date", "Payee", "Category", "Memo", "Outflow", "Inflow"],
-        "api_columns": ["account_id", "date", "payee_name", "amount", "memo", "category", "cleared", "import_id"],
+        "api_columns": [
+            "account_id",
+            "date",
+            "payee_name",
+            "amount",
+            "memo",
+            "category",
+            "cleared",
+            "import_id",
+        ],
         "cd_flags": [""],
         "date_format": "",
         "date_dedupe": False,
@@ -212,7 +229,16 @@ def test_detect_and_parse_returns_empty_list_when_df_is_empty(
         "footer_rows": 0,
         "input_columns": ["Date", "Inflow"],
         "output_columns": ["Date", "Payee", "Category", "Memo", "Outflow", "Inflow"],
-        "api_columns": ["account_id", "date", "payee_name", "amount", "memo", "category", "cleared", "import_id"],
+        "api_columns": [
+            "account_id",
+            "date",
+            "payee_name",
+            "amount",
+            "memo",
+            "category",
+            "cleared",
+            "import_id",
+        ],
         "cd_flags": [""],
         "date_format": "",
         "date_dedupe": False,
@@ -264,9 +290,7 @@ def test_detect_and_parse_raises_when_no_bank_matches(
         patch("app.services.bank_statement_service.get_files", return_value=[]),
     ):
         with pytest.raises(BankStatementParseError, match="No bank2ynab configuration matched"):
-            service._detect_and_parse(
-                str(unrecognized_file), str(tmp_path), unrecognized_file.name
-            )
+            service._detect_and_parse(str(unrecognized_file), str(tmp_path), unrecognized_file.name)
 
 
 def test_detect_and_parse_raises_when_config_missing(
@@ -302,7 +326,16 @@ def test_detect_and_parse_raises_parse_error_on_value_error(
         "footer_rows": 0,
         "input_columns": ["Date", "Inflow"],
         "output_columns": ["Date", "Payee", "Category", "Memo", "Outflow", "Inflow"],
-        "api_columns": ["account_id", "date", "payee_name", "amount", "memo", "category", "cleared", "import_id"],
+        "api_columns": [
+            "account_id",
+            "date",
+            "payee_name",
+            "amount",
+            "memo",
+            "category",
+            "cleared",
+            "import_id",
+        ],
         "cd_flags": [""],
         "date_format": "",
         "date_dedupe": False,
@@ -351,7 +384,16 @@ def test_detect_and_parse_converts_nan_to_none(
         "footer_rows": 0,
         "input_columns": ["Date", "skip", "Memo", "skip", "Payee", "skip", "Inflow", "skip"],
         "output_columns": ["Date", "Payee", "Category", "Memo", "Outflow", "Inflow"],
-        "api_columns": ["account_id", "date", "payee_name", "amount", "memo", "category", "cleared", "import_id"],
+        "api_columns": [
+            "account_id",
+            "date",
+            "payee_name",
+            "amount",
+            "memo",
+            "category",
+            "cleared",
+            "import_id",
+        ],
         "cd_flags": [""],
         "date_format": "",
         "date_dedupe": False,
