@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base, bigint_pk
 
 if TYPE_CHECKING:
+    from app.db.models.bank_transaction import BankTransaction
     from app.db.models.invoice import Invoice
     from app.db.models.ksef import KsefSession
 
@@ -30,6 +31,11 @@ class Company(Base):
 
     # One-to-many relationship with Invoice
     invoices: Mapped[list[Invoice]] = relationship(
+        back_populates="company", cascade="all, delete-orphan"
+    )
+
+    # One-to-many relationship with BankTransaction
+    bank_transactions: Mapped[list[BankTransaction]] = relationship(
         back_populates="company", cascade="all, delete-orphan"
     )
 
