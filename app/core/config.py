@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # Auth & JWT
+    SECRET_KEY: str = "supersecret_dev_key_replace_in_prod"
+    VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+
     @model_validator(mode="after")
     def validate_encryption_master_key(self) -> "Settings":
         if not self.ENCRYPTION_MASTER_KEY:

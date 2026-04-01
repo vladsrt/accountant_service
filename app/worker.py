@@ -9,7 +9,10 @@ celery_app = Celery(
     "accountant_service_worker",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.ksef_tasks"],
+    include=[
+        "app.tasks.ksef_tasks",
+        "app.tasks.email_tasks",
+    ],
 )
 
 celery_app.conf.update(
