@@ -2,10 +2,10 @@ import pytest
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.user import User
 from app.core.config import settings
 from app.db.database import async_session_factory
 from app.db.models import Company, KsefSession
+from app.db.models.user import User
 from app.services.ksef_auth import CryptoUtil, KsefAuthService
 
 
@@ -48,10 +48,12 @@ async def test_company(real_db_session: AsyncSession) -> int:
     user_email = "integration_ksef@example.com"
     user_res = await real_db_session.execute(select(User.id).where(User.email == user_email))
     user_id = user_res.scalar_one_or_none()
-    
+
     if not user_id:
         new_user = await real_db_session.execute(
-            insert(User).values(email=user_email, hashed_password="fake", is_verified=True).returning(User.id)
+            insert(User)
+            .values(email=user_email, hashed_password="fake", is_verified=True)
+            .returning(User.id)
         )
         user_id = new_user.scalar_one()
     # ------------------------------------------
@@ -68,7 +70,6 @@ async def test_company(real_db_session: AsyncSession) -> int:
     yield company_id
 
     # Teardown
-    from sqlalchemy import delete
     await real_db_session.execute(delete(Company).where(Company.id == company_id))
     await real_db_session.execute(delete(User).where(User.id == user_id))
     await real_db_session.commit()
