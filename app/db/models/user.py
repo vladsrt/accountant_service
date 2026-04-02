@@ -1,9 +1,13 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base, bigint_pk
+
+if TYPE_CHECKING:
+    from app.db.models.company import Company
 
 
 class User(Base):
@@ -17,3 +21,8 @@ class User(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # One-to-one relationship with Company
+    company: Mapped["Company | None"] = relationship(
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
