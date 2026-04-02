@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # Auth & JWT
     SECRET_KEY: str = "supersecret_dev_key_replace_in_prod"
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     @model_validator(mode="after")
     def validate_encryption_master_key(self) -> "Settings":
