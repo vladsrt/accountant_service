@@ -17,3 +17,9 @@ class UserResponse(UserBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserDeleteRequest(BaseModel):
+    """Schema for confirming account deletion."""
+
+    password: str = Field(..., description="Confirm password to delete account")
