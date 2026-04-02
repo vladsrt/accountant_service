@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.database import async_session_factory
 from app.db.models import Company, KsefSession
+from app.db.models.user import User
 from app.services.ksef_auth import CryptoUtil, KsefAuthService
 
 
@@ -44,19 +45,33 @@ async def test_company(real_db_session: AsyncSession) -> int:
     encrypted_token = CryptoUtil.encrypt(settings.KSEF_TOKEN, settings.ENCRYPTION_MASTER_KEY)
 
     # Insert test company; let PostgreSQL GENERATED ALWAYS AS IDENTITY assign the id
+    user_email = "integration_ksef@example.com"
+    user_res = await real_db_session.execute(select(User.id).where(User.email == user_email))
+    user_id = user_res.scalar_one_or_none()
+
+    if not user_id:
+        new_user = await real_db_session.execute(
+            insert(User)
+            .values(email=user_email, hashed_password="fake", is_verified=True)
+            .returning(User.id)
+        )
+        user_id = new_user.scalar_one()
+    # ------------------------------------------
+
+    # Insert test company WITH user_id
     result = await real_db_session.execute(
         insert(Company)
-        .values(nip=settings.KSEF_NIP, ksef_token=encrypted_token)
+        .values(user_id=user_id, nip=settings.KSEF_NIP, ksef_token=encrypted_token)
         .returning(Company.id)
     )
-    company_id: int = result.scalar_one()
+    company_id = result.scalar_one()
     await real_db_session.commit()
 
     yield company_id
 
-    # Teardown logic
-    await real_db_session.execute(delete(KsefSession).where(KsefSession.company_id == company_id))
+    # Teardown
     await real_db_session.execute(delete(Company).where(Company.id == company_id))
+    await real_db_session.execute(delete(User).where(User.id == user_id))
     await real_db_session.commit()
 
 
