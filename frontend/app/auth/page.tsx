@@ -1,11 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -15,12 +18,35 @@ export default function AuthPage() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
+  const { login, register } = useAuth()
+  const router = useRouter()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!isLogin && password !== confirmPassword) {
+      toast.error("Hasła nie są identyczne")
+      return
+    }
+
     setIsLoading(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsLoading(false)
+    try {
+      if (isLogin) {
+        await login(email, password)
+        toast.success("Zalogowano pomyślnie")
+      } else {
+        await register(email, password)
+        toast.success("Konto utworzone! Sprawdź email aby zweryfikować konto.")
+        setIsLogin(true)
+        setPassword("")
+        setConfirmPassword("")
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Wystąpił błąd"
+      toast.error(msg)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -83,6 +109,7 @@ export default function AuthPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={8}
                   className="h-11 pr-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 transition-colors"
                 />
                 <button
@@ -111,6 +138,7 @@ export default function AuthPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  minLength={8}
                   className="h-11 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 transition-colors"
                 />
               </div>
