@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -27,50 +29,8 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react"
-
-// Mock data for transactions
-const mockTransactions = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    description: "PRZELEW OD: JAN KOWALSKI TYTUŁ: ZA FAKTURĘ FV/2024/01/001",
-    amount: 12500.00,
-    matchStatus: "matched",
-    invoiceNumber: "FV/2024/01/001",
-  },
-  {
-    id: "2",
-    date: "2024-01-14",
-    description: "PRZELEW OD: FIRMA XYZ SP. Z O.O. TYTUŁ: PŁATNOŚĆ ZA USŁUGI",
-    amount: 8750.50,
-    matchStatus: "unmatched",
-    invoiceNumber: null,
-  },
-  {
-    id: "3",
-    date: "2024-01-13",
-    description: "PRZELEW OD: ABC KONSULTING TYTUŁ: FV 003/01/2024",
-    amount: 3200.00,
-    matchStatus: "pending",
-    invoiceNumber: null,
-  },
-  {
-    id: "4",
-    date: "2024-01-12",
-    description: "PRZELEW OD: TECH SOLUTIONS TYTUŁ: ZAPŁATA FV/2024/01/004",
-    amount: 15800.00,
-    matchStatus: "matched",
-    invoiceNumber: "FV/2024/01/004",
-  },
-  {
-    id: "5",
-    date: "2024-01-11",
-    description: "PRZELEW OD: ANNA NOWAK TYTUŁ: ZA PROJEKT GRAFICZNY",
-    amount: 4500.00,
-    matchStatus: "unmatched",
-    invoiceNumber: null,
-  },
-]
+import { apiGet, apiPostFile } from "@/lib/api"
+import { useAuth } from "@/hooks/useAuth"
 
 const navItems = [
   { href: "/dashboard", label: "Panel główny", icon: LayoutDashboard, active: false },
@@ -78,6 +38,12 @@ const navItems = [
   { href: "/dashboard/statements", label: "Wyciągi", icon: CreditCard, active: true },
   { href: "/dashboard/settings", label: "Ustawienia", icon: Settings, active: false },
 ]
+
+interface UploadResult {
+  total_parsed: number
+  new_inserted: number
+  duplicates_ignored: number
+}
 
 function MatchStatusBadge({ status, invoiceNumber }: { status: string; invoiceNumber: string | null }) {
   if (status === "matched" && invoiceNumber) {
@@ -105,10 +71,26 @@ function MatchStatusBadge({ status, invoiceNumber }: { status: string; invoiceNu
 }
 
 export default function StatementsPage() {
+  const router = useRouter()
+  const { logout, isAuthenticated } = useAuth()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
+  const [companyId, setCompanyId] = useState<number | null>(null)
+
+  // Load company to get company_id
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/auth")
+      return
+    }
+
+    apiGet<{ id: number }>("/api/v1/company/me")
+      .then((data) => setCompanyId(data.id))
+      .catch(() => router.push("/onboarding"))
+  }, [isAuthenticated, router])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -123,26 +105,46 @@ export default function StatementsPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    
+
     const files = e.dataTransfer.files
     if (files.length > 0 && files[0].name.endsWith(".csv")) {
       handleFileUpload(files[0])
     }
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
       handleFileUpload(files[0])
     }
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId])
 
   const handleFileUpload = async (file: File) => {
+    if (!companyId) {
+      toast.error("Brak profilu firmy. Dokończ onboarding.")
+      return
+    }
+
     setUploadedFile(file)
     setIsUploading(true)
-    // Simulate upload
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsUploading(false)
+    setUploadResult(null)
+    try {
+      const result = await apiPostFile<UploadResult>("/api/v1/bank/upload", file, {
+        company_id: String(companyId),
+      })
+      setUploadResult(result)
+      toast.success(
+        `Dodano ${result.new_inserted} nowych transakcji, ${result.duplicates_ignored} duplikatów pominięto`
+      )
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Błąd przesyłania pliku"
+      toast.error(msg)
+      setUploadedFile(null)
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const formatCurrency = (amount: number) => {
@@ -160,7 +162,6 @@ export default function StatementsPage() {
           sidebarCollapsed ? "w-20" : "w-64"
         } bg-slate-900 text-white flex flex-col transition-all duration-300 ease-in-out`}
       >
-        {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
           {!sidebarCollapsed && (
             <div className="flex items-center gap-3">
@@ -187,7 +188,6 @@ export default function StatementsPage() {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 py-6 px-3">
           <ul className="space-y-1">
             {navItems.map((item) => (
@@ -208,9 +208,9 @@ export default function StatementsPage() {
           </ul>
         </nav>
 
-        {/* User / Logout */}
         <div className="p-3 border-t border-slate-800">
           <button
+            onClick={logout}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ${
               sidebarCollapsed ? "justify-center" : ""
             }`}
@@ -223,7 +223,6 @@ export default function StatementsPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Import Wyciągów Bankowych</h1>
@@ -231,7 +230,6 @@ export default function StatementsPage() {
           </div>
         </header>
 
-        {/* Content */}
         <main className="flex-1 p-6">
           {/* Drag & Drop Zone */}
           <div
@@ -250,7 +248,7 @@ export default function StatementsPage() {
               onChange={handleFileSelect}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            
+
             <div className="flex flex-col items-center gap-4">
               {isUploading ? (
                 <>
@@ -262,7 +260,7 @@ export default function StatementsPage() {
                     <p className="text-sm text-slate-500 mt-1">{uploadedFile?.name}</p>
                   </div>
                 </>
-              ) : uploadedFile ? (
+              ) : uploadResult && uploadedFile ? (
                 <>
                   <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
                     <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -270,10 +268,16 @@ export default function StatementsPage() {
                   <div>
                     <p className="text-lg font-medium text-slate-900">Plik przesłany pomyślnie</p>
                     <p className="text-sm text-slate-500 mt-1">{uploadedFile.name}</p>
+                    <p className="text-sm text-emerald-600 mt-2 font-medium">
+                      Przetworzone: {uploadResult.total_parsed} | Nowe: {uploadResult.new_inserted} | Duplikaty: {uploadResult.duplicates_ignored}
+                    </p>
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => setUploadedFile(null)}
+                    onClick={() => {
+                      setUploadedFile(null)
+                      setUploadResult(null)
+                    }}
                     className="mt-2"
                   >
                     Prześlij inny plik
@@ -302,39 +306,6 @@ export default function StatementsPage() {
                 </>
               )}
             </div>
-          </div>
-
-          {/* Transactions Table */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-900">Ostatnie transakcje</h2>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="font-semibold text-slate-700 w-28">Data</TableHead>
-                  <TableHead className="font-semibold text-slate-700">Opis</TableHead>
-                  <TableHead className="font-semibold text-slate-700 text-right w-36">Kwota</TableHead>
-                  <TableHead className="font-semibold text-slate-700 w-56">Status dopasowania</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockTransactions.map((transaction) => (
-                  <TableRow key={transaction.id} className="hover:bg-slate-50">
-                    <TableCell className="text-slate-600 font-medium">{transaction.date}</TableCell>
-                    <TableCell className="text-slate-700 text-sm max-w-md truncate">
-                      {transaction.description}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-600">
-                      +{formatCurrency(transaction.amount)}
-                    </TableCell>
-                    <TableCell>
-                      <MatchStatusBadge status={transaction.matchStatus} invoiceNumber={transaction.invoiceNumber} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </div>
         </main>
       </div>

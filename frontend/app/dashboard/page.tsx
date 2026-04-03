@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -32,9 +34,12 @@ import {
   ChevronRight,
   LogOut,
   Building2,
+  Loader2,
 } from "lucide-react"
+import { apiGet, apiPost } from "@/lib/api"
+import { useAuth } from "@/hooks/useAuth"
 
-// Mock data for invoices
+// Mock data for invoices (will be replaced with real API later)
 const mockInvoices = [
   {
     id: "1",
@@ -122,14 +127,39 @@ function StatusBadge({ status, taxRate }: { status: string; taxRate: string | nu
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { logout, isAuthenticated } = useAuth()
   const [isSyncing, setIsSyncing] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [companyLoaded, setCompanyLoaded] = useState(false)
+
+  // Check auth + company on mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/auth")
+      return
+    }
+
+    apiGet("/api/v1/company/me")
+      .then(() => setCompanyLoaded(true))
+      .catch((err: Error) => {
+        if (err.message.includes("404") || err.message.includes("not found") || err.message.includes("Company not found")) {
+          router.push("/onboarding")
+        }
+      })
+  }, [isAuthenticated, router])
 
   const handleSync = async () => {
     setIsSyncing(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsSyncing(false)
+    try {
+      await apiPost("/api/v1/ksef/sync")
+      toast.success("Synchronizacja uruchomiona w tle")
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Błąd synchronizacji"
+      toast.error(msg)
+    } finally {
+      setIsSyncing(false)
+    }
   }
 
   const formatCurrency = (amount: number) => {
@@ -141,6 +171,14 @@ export default function DashboardPage() {
 
   const formatNip = (nip: string) => {
     return nip.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, "$1-$2-$3-$4")
+  }
+
+  if (!companyLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    )
   }
 
   return (
@@ -202,6 +240,7 @@ export default function DashboardPage() {
         {/* User / Logout */}
         <div className="p-3 border-t border-slate-800">
           <button
+            onClick={logout}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ${
               sidebarCollapsed ? "justify-center" : ""
             }`}
