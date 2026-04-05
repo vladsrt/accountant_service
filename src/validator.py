@@ -32,9 +32,11 @@ def validate_pkwiu(
         normalized = pkwiu_code.replace("ex ", "")
         for kb_code in index:
             kb_norm = kb_code.replace("ex ", "")
-            if (kb_norm == normalized
-                    or normalized.startswith(kb_norm)
-                    or kb_norm.startswith(normalized)):
+            if (
+                kb_norm == normalized
+                or normalized.startswith(kb_norm)
+                or kb_norm.startswith(normalized)
+            ):
                 return True, None
         return False, f"PKWiU {pkwiu_code} not found in knowledge base"
 

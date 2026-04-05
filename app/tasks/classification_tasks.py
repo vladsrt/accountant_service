@@ -51,7 +51,7 @@ def classify_company_task(self, company_id: int) -> dict | None:
             company_id,
             type(exc).__name__,
         )
-        countdown = min(2 ** self.request.retries * 60, 1800)
+        countdown = min(2**self.request.retries * 60, 1800)
 
         try:
             self.retry(exc=exc, countdown=countdown)

@@ -5,13 +5,16 @@ LLM determines the PKWiU code, this module determines the rate.
 Zero guessing — if PKWiU maps to one rate, return it.
 If ambiguous (multiple rates possible), return all candidates.
 """
+
 from __future__ import annotations
 
 from src.knowledge_base import get_pkwiu_index
 from src.config import THRESHOLD_PKWIU_PREFIXES
 
 
-def lookup_rate(pkwiu_code: str | None, is_wolny_zawod: bool, null_pkwiu_category: str | None = None) -> dict:
+def lookup_rate(
+    pkwiu_code: str | None, is_wolny_zawod: bool, null_pkwiu_category: str | None = None
+) -> dict:
     """
     Determine ryczałt rate from PKWiU code.
 
@@ -36,9 +39,9 @@ def lookup_rate(pkwiu_code: str | None, is_wolny_zawod: bool, null_pkwiu_categor
     # No PKWiU — use null_pkwiu_category to determine rate
     if pkwiu_code is None:
         category_rates = {
-            "wlasna_produkcja": 2,       # own farm products
-            "dzialalnosc_wytworcza": 5.5, # manufacturing
-            "sprzedaz": 3,               # sale of goods/assets
+            "wlasna_produkcja": 2,  # own farm products
+            "dzialalnosc_wytworcza": 5.5,  # manufacturing
+            "sprzedaz": 3,  # sale of goods/assets
         }
         if null_pkwiu_category and null_pkwiu_category in category_rates:
             rate = category_rates[null_pkwiu_category]
@@ -62,7 +65,7 @@ def lookup_rate(pkwiu_code: str | None, is_wolny_zawod: bool, null_pkwiu_categor
 
     # Collect matches by type: exact > child (LLM more specific) > parent (KB more specific)
     exact_matches = []
-    child_matches = []   # LLM code is more specific than KB
+    child_matches = []  # LLM code is more specific than KB
     parent_matches = []  # KB code is more specific than LLM
 
     for kb_code, rates in index.items():
@@ -151,6 +154,5 @@ def _is_threshold_dependent(pkwiu_code: str | None, rate: float) -> bool:
         return False
     pkwiu_norm = pkwiu_code.replace("ex ", "")
     return any(
-        pkwiu_norm.startswith(prefix) or pkwiu_norm == prefix
-        for prefix in THRESHOLD_PKWIU_PREFIXES
+        pkwiu_norm.startswith(prefix) or pkwiu_norm == prefix for prefix in THRESHOLD_PKWIU_PREFIXES
     )

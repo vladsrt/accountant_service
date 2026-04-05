@@ -4,6 +4,7 @@ Deterministic auditor — replaces LLM Step 4.
 Checks for known ambiguity patterns using code rules, not LLM.
 Returns audit result with flags and optional clarification question.
 """
+
 from __future__ import annotations
 
 import re
@@ -21,15 +22,22 @@ _WOLNY_ZAWOD_SUSPICIOUS = [
     (r"terapi\w*\s+psycholog", "Czy usługodawca jest psychologiem (mgr psychologii)?"),
     (r"fizjoterapi", "Czy usługodawca posiada tytuł zawodowy (fizjoterapeuta)?"),
     (r"konsultacj\w*\s+lekars", "Czy usługodawca jest lekarzem (dr med., lek.)?"),
-    (r"us[łl]ug\w*\s+(medyczn|zdrowotn)", "Czy usługodawca jest lekarzem lub posiada tytuł zawodowy?"),
+    (
+        r"us[łl]ug\w*\s+(medyczn|zdrowotn)",
+        "Czy usługodawca jest lekarzem lub posiada tytuł zawodowy?",
+    ),
     (r"stomatolog", "Czy usługodawca jest lekarzem dentystą?"),
     (r"badani\w*\s+laborator", "Jakiego rodzaju badania — medyczne czy naukowe (R&D)?"),
 ]
 
 # Gastronomia keywords — catches catering, bar, kantyna etc
 _GASTRO_KEYWORDS = [
-    r"catering", r"gastronom", r"kantyn", r"kelners",
-    r"\bbar\b", r"food\s*truck",
+    r"catering",
+    r"gastronom",
+    r"kantyn",
+    r"kelners",
+    r"\bbar\b",
+    r"food\s*truck",
 ]
 
 
@@ -49,9 +57,7 @@ def audit(
     pkwiu_norm = (pkwiu_code or "").replace("ex ", "")
 
     # === 1. Gastronomia (PKWiU 56) — check alcohol info in P_7 ===
-    is_gastro = pkwiu_norm.startswith("56") or any(
-        re.search(p, p7_lower) for p in _GASTRO_KEYWORDS
-    )
+    is_gastro = pkwiu_norm.startswith("56") or any(re.search(p, p7_lower) for p in _GASTRO_KEYWORDS)
     if is_gastro:
         has_no_alcohol = bool(re.search(r"bez alkohol", p7_lower))
         has_alcohol = bool(re.search(r"alkohol", p7_lower)) and not has_no_alcohol
@@ -66,23 +72,25 @@ def audit(
 
     # === 2. Najem without period — najem vs zakwaterowanie ===
     # Only for residential (68.20.1). Commercial (68.20.2) is always long-term, no ambiguity.
-    is_commercial = bool(re.search(
-        r"magazyn|hal[aei]|biur|lokal\s*u[żz]ytkow|komercyjn|przemysłow|handlow",
-        p7_lower,
-    ))
+    is_commercial = bool(
+        re.search(
+            r"magazyn|hal[aei]|biur|lokal\s*u[żz]ytkow|komercyjn|przemysłow|handlow",
+            p7_lower,
+        )
+    )
     if pkwiu_norm.startswith("68.20") and not is_commercial:
         # Explicit period TYPE patterns (long-term vs short-term)
         explicit_type_patterns = [
-            r"miesi",          # miesięczny/miesiąc
-            r"rok\b|roczn",    # roczny
-            r"\d+\s*dob",      # N dób
+            r"miesi",  # miesięczny/miesiąc
+            r"rok\b|roczn",  # roczny
+            r"\d+\s*dob",  # N dób
             r"na doby|na dobę",
             r"airbnb|booking",
         ]
         # Weak period patterns (month name, year) — not enough for "pokój/pokoju"
         weak_period_patterns = [
             r"stycz|luty|marz|kwiet|maj|czerw|lip|sierp|wrzesi|paźdz|listop|grudz",
-            r"\d{4}",          # year like 2026
+            r"\d{4}",  # year like 2026
         ]
         has_explicit_type = any(re.search(p, p7_lower) for p in explicit_type_patterns)
         has_weak_period = any(re.search(p, p7_lower) for p in weak_period_patterns)
@@ -111,10 +119,16 @@ def audit(
     # === 4. Ambiguous null-PKWiU categories ===
     if pkwiu_code is None and not flags:
         ambiguous_null_patterns = [
-            (r"prototyp", "rd_vs_manufacturing",
-             "Czy to jest prototypowanie (R&D) czy produkcja seryjna?"),
-            (r"druk\s*3d", "rd_vs_manufacturing",
-             "Czy druk 3D dotyczy prototypowania (R&D) czy produkcji?"),
+            (
+                r"prototyp",
+                "rd_vs_manufacturing",
+                "Czy to jest prototypowanie (R&D) czy produkcja seryjna?",
+            ),
+            (
+                r"druk\s*3d",
+                "rd_vs_manufacturing",
+                "Czy druk 3D dotyczy prototypowania (R&D) czy produkcji?",
+            ),
         ]
         for pattern, flag, q in ambiguous_null_patterns:
             if re.search(pattern, p7_lower):

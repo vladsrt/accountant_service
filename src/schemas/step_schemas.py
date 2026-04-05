@@ -23,7 +23,12 @@ STEP1_SANITIZER_SCHEMA = {
                 "description": "Question in Polish if not classifiable. null if classifiable.",
             },
         },
-        "required": ["sanitized_p7", "is_classifiable", "rejection_reason", "clarification_question"],
+        "required": [
+            "sanitized_p7",
+            "is_classifiable",
+            "rejection_reason",
+            "clarification_question",
+        ],
         "additionalProperties": False,
     },
 }
@@ -127,7 +132,14 @@ STEP4_AUDITOR_SCHEMA = {
                 "description": "Brief explanation of what was checked and why approved or not.",
             },
         },
-        "required": ["approved", "confidence", "corrected_pkwiu", "ambiguity_flags", "clarification_question", "reasoning"],
+        "required": [
+            "approved",
+            "confidence",
+            "corrected_pkwiu",
+            "ambiguity_flags",
+            "clarification_question",
+            "reasoning",
+        ],
         "additionalProperties": False,
     },
 }

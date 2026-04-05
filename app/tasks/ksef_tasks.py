@@ -49,6 +49,7 @@ async def _run_sync(company_id: int) -> dict:
                 )
                 if unclassified:
                     from app.tasks.classification_tasks import classify_company_task
+
                     classify_company_task.delay(company_id)
                     logger.info("Triggered classify_company_task for company_id=%d", company_id)
             except Exception:

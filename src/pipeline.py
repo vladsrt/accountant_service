@@ -7,6 +7,7 @@ Step 3: Wolny Zawód Detector (LLM)
 Step 4: Ambiguity Auditor (DETERMINISTIC CODE — no LLM)
 Then: deterministic rate_lookup + revenue threshold → ACCEPTED / NEEDS_CLARIFICATION
 """
+
 from __future__ import annotations
 
 from src.auditor import audit as code_audit
@@ -169,7 +170,9 @@ def classify(
         )
 
     # === Validation: PKWiU exists in KB ===
-    is_valid, validation_error = validate_pkwiu(pkwiu_code, is_wolny_zawod, classifier_reasoning, null_pkwiu_category)
+    is_valid, validation_error = validate_pkwiu(
+        pkwiu_code, is_wolny_zawod, classifier_reasoning, null_pkwiu_category
+    )
     if not is_valid:
         return _build_clarification(
             reason=f"Validation: {validation_error}",

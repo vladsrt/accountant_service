@@ -65,11 +65,11 @@ def call_llm(
             return data, metadata
 
         except RateLimitError:
-            wait = min(2 ** attempt, 30)  # exponential backoff, max 30s
+            wait = min(2**attempt, 30)  # exponential backoff, max 30s
             time.sleep(wait)
 
         except Exception as e:
             if attempt < max_attempts - 1:
-                time.sleep(min(2 ** attempt, 10))
+                time.sleep(min(2**attempt, 10))
             else:
                 raise RuntimeError(f"LLM call failed after {max_attempts} retries: {e}")

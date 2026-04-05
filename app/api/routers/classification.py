@@ -174,9 +174,7 @@ async def reclassify_invoice(
     from sqlalchemy import delete
 
     await db.execute(
-        delete(InvoiceLineClassification).where(
-            InvoiceLineClassification.invoice_id == invoice_id
-        )
+        delete(InvoiceLineClassification).where(InvoiceLineClassification.invoice_id == invoice_id)
     )
     invoice.is_classified = False
     invoice.tax_rate = None

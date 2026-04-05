@@ -82,13 +82,13 @@ class ClassificationService:
                 continue
 
             try:
-                cls_result = await ClassificationService._classify_single_p7(
-                    p7_text
-                )
+                cls_result = await ClassificationService._classify_single_p7(p7_text)
             except Exception:
                 logger.exception(
                     "Classification failed for invoice %d, line %d: %s",
-                    invoice_id, idx, p7_text[:80],
+                    invoice_id,
+                    idx,
+                    p7_text[:80],
                 )
                 has_error = True
                 continue
@@ -149,9 +149,7 @@ class ClassificationService:
         }
 
     @staticmethod
-    async def classify_company_invoices(
-        company_id: int, db: AsyncSession
-    ) -> dict[str, Any]:
+    async def classify_company_invoices(company_id: int, db: AsyncSession) -> dict[str, Any]:
         """Classify all unclassified invoices for a company.
 
         Returns summary: {"total_invoices": N, "classified": M, "needs_clarification": K, "errors": E}
@@ -166,9 +164,7 @@ class ClassificationService:
                 "errors": 0,
             }
 
-        logger.info(
-            "Classifying %d invoices for company %d", len(payloads), company_id
-        )
+        logger.info("Classifying %d invoices for company %d", len(payloads), company_id)
 
         classified = 0
         needs_clarification = 0
@@ -177,16 +173,12 @@ class ClassificationService:
         for payload in payloads:
             invoice_id = payload["invoice_id"]
             try:
-                result = await ClassificationService.classify_invoice(
-                    invoice_id, db
-                )
+                result = await ClassificationService.classify_invoice(invoice_id, db)
                 if result.get("has_error"):
                     errors += 1
                 else:
                     # Reload invoice to check final status
-                    inv_stmt = select(Invoice.is_classified).where(
-                        Invoice.id == invoice_id
-                    )
+                    inv_stmt = select(Invoice.is_classified).where(Invoice.id == invoice_id)
                     inv_result = await db.execute(inv_stmt)
                     is_done = inv_result.scalar_one_or_none()
                     if is_done:
@@ -194,9 +186,7 @@ class ClassificationService:
                     else:
                         needs_clarification += 1
             except Exception:
-                logger.exception(
-                    "Failed to classify invoice %d", invoice_id
-                )
+                logger.exception("Failed to classify invoice %d", invoice_id)
                 errors += 1
 
         await db.commit()

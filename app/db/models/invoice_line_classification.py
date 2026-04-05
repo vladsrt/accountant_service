@@ -19,9 +19,7 @@ if TYPE_CHECKING:
 
 class InvoiceLineClassification(Base):
     __tablename__ = "invoice_line_classifications"
-    __table_args__ = (
-        UniqueConstraint("invoice_id", "line_index", name="uq_invoice_line"),
-    )
+    __table_args__ = (UniqueConstraint("invoice_id", "line_index", name="uq_invoice_line"),)
 
     id: Mapped[bigint_pk]
     invoice_id: Mapped[int] = mapped_column(

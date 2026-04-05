@@ -12,6 +12,7 @@ class Verdict(Enum):
 @dataclass
 class LLMResult:
     """Raw structured output from Front Desk."""
+
     sanitized_p7: str
     is_classifiable: bool
     rejection_reason: str | None
@@ -27,6 +28,7 @@ class LLMResult:
 @dataclass
 class ClassificationResult:
     """Final result after full pipeline (LLM + validation)."""
+
     verdict: Verdict
     rate_percent: float | None
     pkwiu_code: str | None
@@ -38,7 +40,9 @@ class ClassificationResult:
     # Pipeline metadata
     corridor: str  # "GREEN" or "CLARIFICATION"
     clarification_question: str | None = None
-    is_threshold_dependent: bool = False  # True if PKWiU subject to 100k revenue threshold (8.5%/12.5%)
+    is_threshold_dependent: bool = (
+        False  # True if PKWiU subject to 100k revenue threshold (8.5%/12.5%)
+    )
     total_tokens: int = 0
     total_latency_ms: int = 0
     llm_calls_count: int = 0
@@ -48,6 +52,7 @@ class ClassificationResult:
 @dataclass
 class TestCaseResult:
     """Result of running one test case."""
+
     test_id: int
     p7_value: str
     difficulty: str
