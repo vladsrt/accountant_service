@@ -12,6 +12,7 @@ celery_app = Celery(
     include=[
         "app.tasks.ksef_tasks",
         "app.tasks.email_tasks",
+        "app.tasks.classification_tasks",
     ],
 )
 

@@ -1,0 +1,609 @@
+{
+  "metadata": {
+    "source": "Art. 12 ust. 1 Ustawy z dnia 20 listopada 1998 r. o zryczałtowanym podatku dochodowym od niektórych przychodów osiąganych przez osoby fizyczne",
+    "legal_reference": "Dz.U.2025.843 t.j.",
+    "classification": "PKWiU 2015",
+    "last_updated": "2026-03-27",
+    "purpose": "RAG knowledge base for ryczałt tax rate classification from KSeF P_7 field"
+  },
+  "rates": [
+    {
+      "rate_percent": 17,
+      "rate_description": "Wolne zawody oraz wybrane usługi świadczone na rzecz podmiotów powiązanych",
+      "legal_basis": "art. 12 ust. 1 pkt 1",
+      "entries": [
+        {
+          "pkwiu": null,
+          "description": "Przychody osiągane w zakresie wolnych zawodów (tłumacze przysięgli, adwokaci, radcowie prawni, notariusze, biegli rewidenci, doradcy podatkowi, rzecznicy patentowi, architekci, inżynierowie budownictwa, lekarze, lekarze dentyści, lekarze weterynarii, technicy dentystyczni, felczerzy, położne, pielęgniarki, psycholodzy, fizjoterapeuci, tłumacze, księgowi)"
+        },
+        {
+          "pkwiu": "18.20.30.0",
+          "description": "Usługi reprodukcji komputerowych nośników informacji"
+        },
+        {
+          "pkwiu": "45.40.40.0",
+          "description": "Pośrednictwo w sprzedaży motocykli oraz części i akcesoriów do nich"
+        },
+        {
+          "pkwiu": "52.10.12.0",
+          "description": "Usługi magazynowania i przechowywania cieczy i gazów"
+        },
+        {
+          "pkwiu": "ex 52.10.19.0",
+          "description": "Usługi magazynowania i przechowywania towarów w strefach wolnocłowych"
+        },
+        {
+          "pkwiu": "52.21.24.0",
+          "description": "Usługi parkingowe"
+        },
+        {
+          "pkwiu": "68.20.1",
+          "description": "Wynajem i obsługa nieruchomości własnych lub dzierżawionych — budynki mieszkalne"
+        },
+        {
+          "pkwiu": "ex 68.20.2",
+          "description": "Wynajem i obsługa nieruchomości własnych lub dzierżawionych — budynki niemieszkalne"
+        }
+      ]
+    },
+    {
+      "rate_percent": 15,
+      "rate_description": "Wybrane usługi niematerialne i pośrednictwo",
+      "legal_basis": "art. 12 ust. 1 pkt 2",
+      "entries": [
+        {
+          "pkwiu": "ex 46.1",
+          "description": "Pośrednictwo w sprzedaży hurtowej"
+        },
+        {
+          "pkwiu": "59.11.25.0",
+          "description": "Usługi przesyłania strumieni wideo przez Internet"
+        },
+        {
+          "pkwiu": "59.20.36.0",
+          "description": "Usługi przesyłania strumieni audio przez Internet"
+        },
+        {
+          "pkwiu": "ex 63.11.1",
+          "description": "Usługi przetwarzania danych; usługi zarządzania stronami internetowymi (hosting) i podobne"
+        },
+        {
+          "pkwiu": "63.91.1",
+          "description": "Usługi agencji informacyjnych"
+        },
+        {
+          "pkwiu": "63.99",
+          "description": "Pozostałe usługi w zakresie informacji, gdzie indziej niesklasyfikowane"
+        },
+        {
+          "pkwiu": "ex 58.21.10.0",
+          "description": "Usługi związane z wydawaniem gier komputerowych (z wyłączeniem do pobrania on-line)"
+        },
+        {
+          "pkwiu": "58.29.1",
+          "description": "Pakiety oprogramowania systemowego"
+        },
+        {
+          "pkwiu": "58.29.2",
+          "description": "Pakiety oprogramowania użytkowego"
+        },
+        {
+          "pkwiu": "58.29.3",
+          "description": "Pakiety pozostałego oprogramowania"
+        },
+        {
+          "pkwiu": "ex 59.11",
+          "description": "Usługi związane z filmami, nagraniami wideo (produkcja, postprodukcja)"
+        },
+        {
+          "pkwiu": "ex 59.12",
+          "description": "Usługi związane z dystrybucją filmów, nagrań wideo i programów telewizyjnych"
+        },
+        {
+          "pkwiu": "ex 59.20",
+          "description": "Usługi związane z produkcją i wydawaniem nagrań dźwiękowych i muzycznych"
+        },
+        {
+          "pkwiu": "64",
+          "description": "Usługi finansowe (z wyłączeniem ubezpieczeń i funduszy emerytalnych)"
+        },
+        {
+          "pkwiu": "65",
+          "description": "Usługi ubezpieczeniowe, reasekuracyjne oraz usługi związane z funduszami emerytalnymi"
+        },
+        {
+          "pkwiu": "66",
+          "description": "Usługi wspomagające usługi finansowe, ubezpieczeniowe i fundusze emerytalne"
+        },
+        {
+          "pkwiu": "ex 70.2",
+          "description": "Usługi doradztwa związane z zarządzaniem"
+        },
+        {
+          "pkwiu": "73.1",
+          "description": "Usługi reklamowe"
+        },
+        {
+          "pkwiu": "73.20.1",
+          "description": "Usługi badania rynku"
+        },
+        {
+          "pkwiu": "73.20.2",
+          "description": "Usługi badania opinii publicznej"
+        },
+        {
+          "pkwiu": "74.2",
+          "description": "Usługi fotograficzne"
+        },
+        {
+          "pkwiu": "74.3",
+          "description": "Usługi tłumaczeń pisemnych i ustnych"
+        },
+        {
+          "pkwiu": "78",
+          "description": "Usługi związane z zatrudnieniem"
+        },
+        {
+          "pkwiu": "79",
+          "description": "Usługi organizatorów turystyki, pośredników i agentów turystycznych, pozostałe usługi rezerwacji i związane z nią"
+        },
+        {
+          "pkwiu": "80.1",
+          "description": "Usługi ochroniarskie, z wyłączeniem obsługi systemów bezpieczeństwa"
+        },
+        {
+          "pkwiu": "80.2",
+          "description": "Usługi ochroniarskie w zakresie obsługi systemów bezpieczeństwa"
+        },
+        {
+          "pkwiu": "81",
+          "description": "Usługi związane z utrzymaniem porządku w budynkach i zagospodarowaniem terenów zieleni"
+        },
+        {
+          "pkwiu": "ex 85.5",
+          "description": "Usługi w zakresie pozaszkolnych form edukacji (wybrane)"
+        },
+        {
+          "pkwiu": "88",
+          "description": "Usługi pomocy społecznej bez zakwaterowania"
+        },
+        {
+          "pkwiu": "90",
+          "description": "Usługi kulturalne i rozrywkowe"
+        },
+        {
+          "pkwiu": "91",
+          "description": "Usługi bibliotek, archiwów, muzeów oraz pozostałe usługi w zakresie kultury"
+        },
+        {
+          "pkwiu": "92",
+          "description": "Usługi związane z grami losowymi i zakładami wzajemnymi"
+        },
+        {
+          "pkwiu": "93",
+          "description": "Usługi związane ze sportem, rozrywką i rekreacją"
+        },
+        {
+          "pkwiu": "95",
+          "description": "Usługi naprawy komputerów i artykułów użytku osobistego i domowego"
+        },
+        {
+          "pkwiu": "96",
+          "description": "Pozostałe usługi indywidualne"
+        },
+        {
+          "pkwiu": "18.1",
+          "description": "Usługi poligraficzne (druk książek, gazet, ulotek, etykiet, opakowań)"
+        },
+        {
+          "pkwiu": "58.29",
+          "description": "Pakiety oprogramowania (ogólne)"
+        }
+      ]
+    },
+    {
+      "rate_percent": 14,
+      "rate_description": "Usługi w zakresie opieki zdrowotnej, architektoniczne, inżynierskie i specjalistyczne projektowanie",
+      "legal_basis": "art. 12 ust. 1 pkt 2a",
+      "entries": [
+        {
+          "pkwiu": "ex 86",
+          "description": "Usługi w zakresie opieki zdrowotnej (świadczone w ramach działalności leczniczej)"
+        },
+        {
+          "pkwiu": "71",
+          "description": "Usługi architektoniczne i inżynierskie; usługi badań i analiz technicznych"
+        },
+        {
+          "pkwiu": "71.11",
+          "description": "Usługi architektoniczne"
+        },
+        {
+          "pkwiu": "71.12",
+          "description": "Usługi inżynierskie i doradztwo techniczne"
+        },
+        {
+          "pkwiu": "71.20",
+          "description": "Usługi w zakresie badań i analiz technicznych"
+        },
+        {
+          "pkwiu": "74.1",
+          "description": "Usługi specjalistycznego projektowania"
+        }
+      ]
+    },
+    {
+      "rate_percent": 12.5,
+      "rate_description": "Najem powyżej 100 000 zł rocznie (poza działalnością gospodarczą)",
+      "legal_basis": "art. 12 ust. 1 pkt 2e",
+      "entries": [
+        {
+          "pkwiu": null,
+          "description": "Przychody z tytułu najmu, podnajmu, dzierżawy oraz innych umów o podobnym charakterze powyżej 100 000 zł rocznie (osiągane poza działalnością gospodarczą)"
+        }
+      ]
+    },
+    {
+      "rate_percent": 12,
+      "rate_description": "Usługi IT, oprogramowanie, doradztwo komputerowe, wynajem pojazdów, pośrednictwo turystyczne",
+      "legal_basis": "art. 12 ust. 1 pkt 2b",
+      "entries": [
+        {
+          "pkwiu": "62.01.1",
+          "description": "Usługi związane z projektowaniem, programowaniem i rozwojem oprogramowania"
+        },
+        {
+          "pkwiu": "62.01.11.0",
+          "description": "Usługi związane z projektowaniem, programowaniem i rozwojem oprogramowania systemowego i aplikacyjnego"
+        },
+        {
+          "pkwiu": "62.01.12.0",
+          "description": "Usługi związane z projektowaniem i rozwojem technologii informatycznych dla sieci i systemów komputerowych"
+        },
+        {
+          "pkwiu": "62.02",
+          "description": "Usługi związane z doradztwem w zakresie informatyki"
+        },
+        {
+          "pkwiu": "62.02.10.0",
+          "description": "Usługi doradztwa w zakresie sprzętu komputerowego"
+        },
+        {
+          "pkwiu": "62.03",
+          "description": "Usługi zarządzania siecią i systemami informatycznymi"
+        },
+        {
+          "pkwiu": "62.09",
+          "description": "Pozostałe usługi w zakresie technologii informatycznych i komputerowych"
+        },
+        {
+          "pkwiu": "ex 58.2",
+          "description": "Usługi związane z wydawaniem oprogramowania"
+        },
+        {
+          "pkwiu": "77.11.10.0",
+          "description": "Wynajem i dzierżawa samochodów osobowych i furgonetek bez kierowcy"
+        },
+        {
+          "pkwiu": "77.12.1",
+          "description": "Wynajem i dzierżawa pozostałych pojazdów samochodowych (z wyłączeniem motocykli) bez kierowcy"
+        },
+        {
+          "pkwiu": "ex 77.34.10.0",
+          "description": "Wynajem i dzierżawa środków transportu wodnego bez załogi"
+        },
+        {
+          "pkwiu": "ex 77.35.10.0",
+          "description": "Wynajem i dzierżawa środków transportu lotniczego bez załogi"
+        },
+        {
+          "pkwiu": null,
+          "description": "Wynajem i dzierżawa pojazdów szynowych bez obsługi"
+        },
+        {
+          "pkwiu": "79.11",
+          "description": "Usługi agentów turystycznych"
+        },
+        {
+          "pkwiu": "79.12",
+          "description": "Usługi organizatorów turystyki"
+        }
+      ]
+    },
+    {
+      "rate_percent": 10,
+      "rate_description": "Kupno i sprzedaż nieruchomości na własny rachunek",
+      "legal_basis": "art. 12 ust. 1 pkt 3",
+      "entries": [
+        {
+          "pkwiu": "68.10.1",
+          "description": "Kupno i sprzedaż nieruchomości na własny rachunek — budynki mieszkalne i niemieszkalne"
+        },
+        {
+          "pkwiu": null,
+          "description": "Odpłatne zbycie praw majątkowych lub nieruchomości w ramach działalności gospodarczej (niezależnie od okresu nabycia)"
+        }
+      ]
+    },
+    {
+      "rate_percent": 8.5,
+      "rate_description": "Usługi ogólne, najem do 100 000 zł, gastronomia powyżej limitu, nieruchomości i inne",
+      "legal_basis": "art. 12 ust. 1 pkt 5",
+      "entries": [
+        {
+          "pkwiu": null,
+          "description": "Przychody z tytułu najmu, podnajmu, dzierżawy do 100 000 zł rocznie"
+        },
+        {
+          "pkwiu": "55",
+          "description": "Usługi związane z zakwaterowaniem (hotele, pensjonaty, campingi)"
+        },
+        {
+          "pkwiu": "56",
+          "description": "Usługi związane z wyżywieniem (restauracje, bary, catering) — powyżej limitu alkoholu"
+        },
+        {
+          "pkwiu": "68.3",
+          "description": "Usługi związane z obsługą rynku nieruchomości (zarządzanie, pośrednictwo)"
+        },
+        {
+          "pkwiu": "68.31",
+          "description": "Pośrednictwo w obrocie nieruchomościami"
+        },
+        {
+          "pkwiu": "68.32",
+          "description": "Zarządzanie nieruchomościami na zlecenie"
+        },
+        {
+          "pkwiu": "68.32.1",
+          "description": "Zarządzanie nieruchomościami mieszkalnymi na zlecenie"
+        },
+        {
+          "pkwiu": "69.1",
+          "description": "Usługi prawne"
+        },
+        {
+          "pkwiu": "69.10",
+          "description": "Usługi prawne (szczegółowe)"
+        },
+        {
+          "pkwiu": "69.2",
+          "description": "Usługi rachunkowo-księgowe i doradztwa podatkowego"
+        },
+        {
+          "pkwiu": "69.20.1",
+          "description": "Usługi w zakresie audytu finansowego"
+        },
+        {
+          "pkwiu": "69.20.2",
+          "description": "Usługi rachunkowo-księgowe"
+        },
+        {
+          "pkwiu": "69.20.3",
+          "description": "Usługi doradztwa podatkowego"
+        },
+        {
+          "pkwiu": "70.22.16",
+          "description": "Usługi zarządzania rynkiem rybnym"
+        },
+        {
+          "pkwiu": "72",
+          "description": "Usługi w zakresie badań naukowych i prac rozwojowych"
+        },
+        {
+          "pkwiu": "77.2",
+          "description": "Wynajem i dzierżawa artykułów użytku osobistego i domowego"
+        },
+        {
+          "pkwiu": "77.3",
+          "description": "Wynajem i dzierżawa maszyn, urządzeń i dóbr materialnych"
+        },
+        {
+          "pkwiu": "82.1",
+          "description": "Usługi związane z administracyjną obsługą biura"
+        },
+        {
+          "pkwiu": "82.3",
+          "description": "Usługi związane z organizacją konferencji, targów i wystaw"
+        },
+        {
+          "pkwiu": "82.9",
+          "description": "Usługi wspomagające prowadzenie działalności gospodarczej, gdzie indziej niesklasyfikowane"
+        },
+        {
+          "pkwiu": "38",
+          "description": "Usługi związane ze zbieraniem, przetwarzaniem i unieszkodliwianiem odpadów; odzysk surowców"
+        },
+        {
+          "pkwiu": "87",
+          "description": "Usługi pomocy społecznej z zakwaterowaniem"
+        },
+        {
+          "pkwiu": null,
+          "description": "Komisja i prowizja z tytułu działalności handlowej"
+        },
+        {
+          "pkwiu": null,
+          "description": "Świadczenie usług związanych z zaspokajaniem potrzeb mieszkaniowych na własny rachunek"
+        },
+        {
+          "pkwiu": null,
+          "description": "Stawka domyślna — jeśli podatnik osiąga przychody z różnych rodzajów działalności i nie prowadzi ewidencji umożliwiającej określenie przychodu z każdego rodzaju"
+        }
+      ]
+    },
+    {
+      "rate_percent": 5.5,
+      "rate_description": "Działalność wytwórcza, roboty budowlane, transport",
+      "legal_basis": "art. 12 ust. 1 pkt 6",
+      "entries": [
+        {
+          "pkwiu": null,
+          "description": "Przychody z działalności wytwórczej (produkcja)"
+        },
+        {
+          "pkwiu": "41",
+          "description": "Roboty budowlane związane ze wznoszeniem budynków"
+        },
+        {
+          "pkwiu": "42",
+          "description": "Roboty budowlane związane z budową obiektów inżynierii lądowej i wodnej"
+        },
+        {
+          "pkwiu": "43",
+          "description": "Roboty budowlane specjalistyczne"
+        },
+        {
+          "pkwiu": "41.00.1",
+          "description": "Budynki mieszkalne"
+        },
+        {
+          "pkwiu": "41.00.2",
+          "description": "Budynki niemieszkalne"
+        },
+        {
+          "pkwiu": "42.1",
+          "description": "Drogi kołowe i szynowe; roboty ogólnobudowlane związane z budową dróg kołowych i szynowych"
+        },
+        {
+          "pkwiu": "42.2",
+          "description": "Rurociągi przesyłowe i sieci rozdzielcze; linie telekomunikacyjne i elektroenergetyczne"
+        },
+        {
+          "pkwiu": "42.9",
+          "description": "Pozostałe obiekty inżynierii lądowej i wodnej"
+        },
+        {
+          "pkwiu": "43.1",
+          "description": "Roboty budowlane — rozbiórka i przygotowanie terenu pod budowę"
+        },
+        {
+          "pkwiu": "43.2",
+          "description": "Roboty instalacyjne — elektryczne, wodno-kanalizacyjne, cieplne"
+        },
+        {
+          "pkwiu": "43.3",
+          "description": "Roboty budowlane wykończeniowe"
+        },
+        {
+          "pkwiu": "43.9",
+          "description": "Pozostałe specjalistyczne roboty budowlane"
+        },
+        {
+          "pkwiu": "49.4",
+          "description": "Usługi transportu drogowego towarów (transport ciężarowy)"
+        },
+        {
+          "pkwiu": "49.41",
+          "description": "Usługi transportu drogowego towarów"
+        },
+        {
+          "pkwiu": "49.42",
+          "description": "Usługi związane z przeprowadzkami"
+        },
+        {
+          "pkwiu": null,
+          "description": "Przewóz ładunków taborem samochodowym o ładowności powyżej 2 ton"
+        },
+        {
+          "pkwiu": null,
+          "description": "Usługi w zakresie transportu morskiego i przybrzeżnego towarów"
+        },
+        {
+          "pkwiu": null,
+          "description": "Usługi w zakresie transportu wodnego śródlądowego towarów"
+        }
+      ]
+    },
+    {
+      "rate_percent": 3,
+      "rate_description": "Działalność gastronomiczna, usługowa (handel), produkcja zwierzęca, przychody ze zbycia środków trwałych",
+      "legal_basis": "art. 12 ust. 1 pkt 7",
+      "entries": [
+        {
+          "pkwiu": null,
+          "description": "Działalność gastronomiczna (z wyłączeniem przychodów ze sprzedaży napojów o zawartości alkoholu powyżej 1,5%)"
+        },
+        {
+          "pkwiu": null,
+          "description": "Działalność usługowa w zakresie handlu (prowizja kupiecka)"
+        },
+        {
+          "pkwiu": null,
+          "description": "Przychody z tytułu odpłatnego zbycia ruchomych składników majątku — środki trwałe i wartości niematerialne i prawne"
+        },
+        {
+          "pkwiu": null,
+          "description": "Działalność rybacka morska i zalewowa — sprzedaż ryb i przetworów rybnych"
+        },
+        {
+          "pkwiu": null,
+          "description": "Produkcja zwierzęca — hodowla zwierząt, produkcja jaj"
+        },
+        {
+          "pkwiu": "01.4",
+          "description": "Chów i hodowla zwierząt"
+        },
+        {
+          "pkwiu": "01.49",
+          "description": "Chów i hodowla pozostałych zwierząt"
+        },
+        {
+          "pkwiu": "01.5",
+          "description": "Uprawy rolne połączone z chowem i hodowlą zwierząt (działalność mieszana)"
+        },
+        {
+          "pkwiu": "03",
+          "description": "Rybactwo i akwakultura"
+        },
+        {
+          "pkwiu": "10",
+          "description": "Artykuły spożywcze (produkcja)"
+        },
+        {
+          "pkwiu": "11",
+          "description": "Napoje (produkcja)"
+        },
+        {
+          "pkwiu": "47",
+          "description": "Handel detaliczny (z wyłączeniem handlu pojazdami samochodowymi i motocyklami)"
+        },
+        {
+          "pkwiu": "56",
+          "description": "Usługi związane z wyżywieniem (restauracje, bary, catering) — do limitu alkoholu"
+        }
+      ]
+    },
+    {
+      "rate_percent": 2,
+      "rate_description": "Sprzedaż przetworzonych produktów roślinnych i zwierzęcych z własnej produkcji",
+      "legal_basis": "art. 12 ust. 1 pkt 8",
+      "entries": [
+        {
+          "pkwiu": null,
+          "description": "Przychody ze sprzedaży przetworzonych w sposób inny niż przemysłowy produktów roślinnych i zwierzęcych pochodzących z własnej uprawy, hodowli lub chowu"
+        },
+        {
+          "pkwiu": "01.1",
+          "description": "Rośliny inne niż wieloletnie (uprawa)"
+        },
+        {
+          "pkwiu": "01.2",
+          "description": "Rośliny wieloletnie (uprawa)"
+        },
+        {
+          "pkwiu": "01.3",
+          "description": "Materiał rozmnożeniowy roślin (produkcja)"
+        },
+        {
+          "pkwiu": "01.6",
+          "description": "Usługi wspomagające produkcję roślinną (poza działalnością weterynaryjną)"
+        },
+        {
+          "pkwiu": null,
+          "description": "Produkty z miodu pszczelego, mleka surowego i jaj od zwierząt z własnego chowu"
+        }
+      ]
+    }
+  ]
+}

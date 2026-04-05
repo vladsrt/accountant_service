@@ -13,6 +13,7 @@ from app.db.database import Base, bigint_pk
 
 if TYPE_CHECKING:
     from app.db.models.company import Company
+    from app.db.models.invoice_line_classification import InvoiceLineClassification
 
 
 class InvoiceStatus(str, enum.Enum):
@@ -50,6 +51,11 @@ class Invoice(Base):
 
     # Back-reference to Company (many-to-one)
     company: Mapped[Company] = relationship(back_populates="invoices")
+
+    # AI classification results (one-to-many)
+    line_classifications: Mapped[list[InvoiceLineClassification]] = relationship(
+        back_populates="invoice", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return (
