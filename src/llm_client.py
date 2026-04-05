@@ -72,3 +72,5 @@ def call_llm(
                 time.sleep(min(2**attempt, 10))
             else:
                 raise RuntimeError(f"LLM call failed after {max_attempts} retries: {e}")
+
+    raise RuntimeError(f"LLM call failed after {max_attempts} retries: rate limited")
