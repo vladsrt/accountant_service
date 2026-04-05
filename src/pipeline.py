@@ -26,7 +26,6 @@ from src.schemas.step_schemas import (
 )
 from src.validator import validate_pkwiu
 
-
 _cache = ClassificationCache()
 _classifier_prompt = None
 

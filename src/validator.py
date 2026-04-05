@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from src.knowledge_base import get_pkwiu_index
 
-
 _VALID_NULL_CATEGORIES = {"wlasna_produkcja", "dzialalnosc_wytworcza", "sprzedaz"}
 
 

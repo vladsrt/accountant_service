@@ -8,8 +8,8 @@ If ambiguous (multiple rates possible), return all candidates.
 
 from __future__ import annotations
 
-from src.knowledge_base import get_pkwiu_index
 from src.config import THRESHOLD_PKWIU_PREFIXES
+from src.knowledge_base import get_pkwiu_index
 
 
 def lookup_rate(

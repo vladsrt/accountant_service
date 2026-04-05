@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import re
 
-
 # Healthcare PKWiU codes where wolny zawód status matters for rate
 _HEALTHCARE_PKWIU = ("86",)
 
@@ -113,7 +112,7 @@ def audit(
             if re.search(pattern, p7_lower):
                 flags.append("wolny_zawod_vs_regular")
                 question = q
-                reasoning_parts.append(f"Podejrzenie wolnego zawodu bez markera")
+                reasoning_parts.append("Podejrzenie wolnego zawodu bez markera")
                 break
 
     # === 4. Ambiguous null-PKWiU categories ===

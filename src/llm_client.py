@@ -6,12 +6,11 @@ import time
 from openai import OpenAI, RateLimitError
 
 from src.config import (
-    OPENAI_API_KEY,
     FRONT_DESK_MODEL,
-    LLM_TEMPERATURE,
     LLM_MAX_RETRIES,
+    LLM_TEMPERATURE,
+    OPENAI_API_KEY,
 )
-
 
 _client = None
 
