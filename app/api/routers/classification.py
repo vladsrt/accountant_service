@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.limiter import limiter
 from app.db.database import get_db
 from app.db.models.company import Company
 from app.db.models.invoice import Invoice
@@ -17,7 +18,6 @@ from app.schemas.classification import (
     PendingLineResponse,
 )
 from app.services.auth_service import get_current_user
-from app.core.limiter import limiter
 from app.tasks.classification_tasks import classify_company_task
 
 router = APIRouter(prefix="/api/v1/classification", tags=["Classification"])

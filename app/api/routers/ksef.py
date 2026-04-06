@@ -5,12 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.database import get_db
 from app.db.models.company import Company
 from app.db.models.user import User
 from app.schemas.ksef import KsefSetupRequest
 from app.services.auth_service import get_current_user
-from app.core.limiter import limiter
 from app.services.ksef_auth import CryptoUtil
 from app.tasks.ksef_tasks import sync_company_task
 

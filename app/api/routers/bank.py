@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.config import settings
 from app.core.limiter import limiter
 from app.db.database import get_db
 from app.db.models.company import Company

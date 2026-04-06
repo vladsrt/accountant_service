@@ -178,9 +178,7 @@ class FA3Parser:
                     if dane_local == "DaneIdentyfikacyjne":
                         for nip_el in dane.iter():
                             nip_tag = nip_el.tag if isinstance(nip_el.tag, str) else ""
-                            nip_local = (
-                                nip_tag.split("}")[-1] if "}" in nip_tag else nip_tag
-                            )
+                            nip_local = nip_tag.split("}")[-1] if "}" in nip_tag else nip_tag
                             if nip_local == "NIP" and nip_el.text:
                                 return nip_el.text.strip().replace("-", "").replace(" ", "")
         return None

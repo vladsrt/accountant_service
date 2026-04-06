@@ -68,9 +68,7 @@ async def blacklist_token(token: str) -> None:
             return
         remaining = int(exp - datetime.now(timezone.utc).timestamp())
         if remaining > 0:
-            await _blacklist_redis.set(
-                f"{_BLACKLIST_PREFIX}{token}", "1", ex=remaining
-            )
+            await _blacklist_redis.set(f"{_BLACKLIST_PREFIX}{token}", "1", ex=remaining)
     except JWTError:
         pass  # Invalid token — nothing to blacklist
 

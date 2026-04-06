@@ -28,9 +28,7 @@ _RE_NIP = re.compile(r"\b\d{3}-\d{3}-\d{2}-\d{2}\b|\b\d{3}-\d{2}-\d{2}-\d{3}\b|\
 _RE_EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 
 # Polish phone: optional +48 or 48 prefix, then 9 digits (with optional spaces/dashes)
-_RE_PHONE = re.compile(
-    r"(?:\+48|48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}\b"
-)
+_RE_PHONE = re.compile(r"(?:\+48|48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}\b")
 
 
 def mask_pii(text: str) -> str:
