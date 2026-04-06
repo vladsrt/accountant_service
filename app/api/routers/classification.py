@@ -1,6 +1,6 @@
 """FastAPI endpoints for AI invoice classification."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +17,7 @@ from app.schemas.classification import (
     PendingLineResponse,
 )
 from app.services.auth_service import get_current_user
+from app.core.limiter import limiter
 from app.tasks.classification_tasks import classify_company_task
 
 router = APIRouter(prefix="/api/v1/classification", tags=["Classification"])
@@ -40,7 +41,9 @@ async def _get_user_company(current_user: User, db: AsyncSession) -> Company:
     response_model=ClassificationTriggerResponse,
     summary="Trigger AI classification for all unclassified invoices",
 )
+@limiter.limit("5/minute")
 async def trigger_classification(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ClassificationTriggerResponse:
@@ -149,7 +152,9 @@ async def get_pending_clarifications(
     response_model=ClassificationTriggerResponse,
     summary="Reclassify a single invoice",
 )
+@limiter.limit("10/minute")
 async def reclassify_invoice(
+    request: Request,
     invoice_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
