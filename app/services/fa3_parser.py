@@ -3,14 +3,23 @@ FA(3) XML Invoice Parser for KSeF 2.0.
 
 Extracts structured data from FA(3) schema invoices
 (namespace: http://crd.gov.pl/wzor/2025/06/25/13775/).
+
+Uses lxml with secure parser settings to prevent XXE injection.
 """
 
 from __future__ import annotations
 
 import logging
-import xml.etree.ElementTree as ET
+
+from lxml import etree
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Secure XML parser — prevents XXE and SSRF attacks
+# ---------------------------------------------------------------------------
+
+_SECURE_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 # ---------------------------------------------------------------------------
 # FA(3) namespace constants
@@ -64,8 +73,8 @@ class FA3Parser:
             FA3ParseError: If the XML is fundamentally unparsable.
         """
         try:
-            root = ET.fromstring(xml_content)  # noqa: S314
-        except ET.ParseError as exc:
+            root = etree.fromstring(xml_content.encode("utf-8"), parser=_SECURE_PARSER)
+        except etree.XMLSyntaxError as exc:
             raise FA3ParseError(f"Invalid XML: {exc}") from exc
 
         # Detect the active namespace from the root tag
@@ -87,15 +96,16 @@ class FA3Parser:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _detect_namespace(root: ET.Element) -> str:
+    def _detect_namespace(root: etree._Element) -> str:
         """Extract the namespace URI from the root element's tag."""
-        if root.tag.startswith("{"):
-            return root.tag.split("}")[0].lstrip("{")
+        tag = root.tag if isinstance(root.tag, str) else ""
+        if tag.startswith("{"):
+            return tag.split("}")[0].lstrip("{")
         return ""
 
     @staticmethod
     def _find_text(
-        root: ET.Element,
+        root: etree._Element,
         xpath: str,
         ns_map: dict[str, str],
     ) -> str | None:
@@ -112,7 +122,7 @@ class FA3Parser:
 
     @staticmethod
     def _extract_ksef_reference(
-        root: ET.Element,
+        root: etree._Element,
         ns_map: dict[str, str],
     ) -> str | None:
         """Try multiple locations for the KSeF reference number.
@@ -124,7 +134,8 @@ class FA3Parser:
         """
         # 1. <NumerKSeF> anywhere in the document (any namespace)
         for elem in root.iter():
-            local = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+            tag = elem.tag if isinstance(elem.tag, str) else ""
+            local = tag.split("}")[-1] if "}" in tag else tag
             if local == "NumerKSeF" and elem.text:
                 return elem.text.strip()
 
@@ -136,7 +147,8 @@ class FA3Parser:
 
         # 3. Fallback to <NumerFaktury>
         for elem in root.iter():
-            local = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+            tag = elem.tag if isinstance(elem.tag, str) else ""
+            local = tag.split("}")[-1] if "}" in tag else tag
             if local == "NumerFaktury" and elem.text:
                 return elem.text.strip()
 
@@ -144,7 +156,7 @@ class FA3Parser:
 
     @staticmethod
     def _extract_nip(
-        root: ET.Element,
+        root: etree._Element,
         podmiot_tag: str,
         ns_map: dict[str, str],
     ) -> str | None:
@@ -157,22 +169,23 @@ class FA3Parser:
 
         # Fallback: namespace-agnostic iteration
         for podmiot in root.iter():
-            local = podmiot.tag.split("}")[-1] if "}" in podmiot.tag else podmiot.tag
+            tag = podmiot.tag if isinstance(podmiot.tag, str) else ""
+            local = tag.split("}")[-1] if "}" in tag else tag
             if local == podmiot_tag:
                 for dane in podmiot.iter():
-                    dane_local = dane.tag.split("}")[-1] if "}" in dane.tag else dane.tag
+                    dane_tag = dane.tag if isinstance(dane.tag, str) else ""
+                    dane_local = dane_tag.split("}")[-1] if "}" in dane_tag else dane_tag
                     if dane_local == "DaneIdentyfikacyjne":
                         for nip_el in dane.iter():
-                            nip_local = (
-                                nip_el.tag.split("}")[-1] if "}" in nip_el.tag else nip_el.tag
-                            )
+                            nip_tag = nip_el.tag if isinstance(nip_el.tag, str) else ""
+                            nip_local = nip_tag.split("}")[-1] if "}" in nip_tag else nip_tag
                             if nip_local == "NIP" and nip_el.text:
                                 return nip_el.text.strip().replace("-", "").replace(" ", "")
         return None
 
     @staticmethod
     def _extract_total_gross(
-        root: ET.Element,
+        root: etree._Element,
         ns_map: dict[str, str],
     ) -> str | None:
         """Extract the total gross amount (P_15, first occurrence)."""
@@ -182,14 +195,15 @@ class FA3Parser:
 
         # Namespace-agnostic fallback
         for elem in root.iter():
-            local = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+            tag = elem.tag if isinstance(elem.tag, str) else ""
+            local = tag.split("}")[-1] if "}" in tag else tag
             if local == "P_15" and elem.text:
                 return elem.text.strip()
         return None
 
     @staticmethod
     def _extract_p7_descriptions(
-        root: ET.Element,
+        root: etree._Element,
         ns_map: dict[str, str],
     ) -> list[str]:
         """Collect all FaWiersz/P_7 text values, capped at 512 chars each."""
@@ -205,10 +219,12 @@ class FA3Parser:
         # Fallback: namespace-agnostic
         if not descriptions:
             for elem in root.iter():
-                local = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+                tag = elem.tag if isinstance(elem.tag, str) else ""
+                local = tag.split("}")[-1] if "}" in tag else tag
                 if local == "FaWiersz":
                     for child in elem:
-                        child_local = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+                        child_tag = child.tag if isinstance(child.tag, str) else ""
+                        child_local = child_tag.split("}")[-1] if "}" in child_tag else child_tag
                         if child_local == "P_7" and child.text:
                             descriptions.append(child.text.strip()[:_P7_MAX_LENGTH])
 

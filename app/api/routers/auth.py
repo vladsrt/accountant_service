@@ -14,11 +14,14 @@ from app.db.models.user import User
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserResponse
 from app.services.auth_service import (
+    blacklist_token,
     create_access_token,
     create_refresh_token,
     create_verification_token,
     decode_verification_token,
+    get_current_user,
     get_password_hash,
+    oauth2_scheme,
     verify_password,
 )
 from app.tasks.email_tasks import send_verification_email_task
@@ -137,8 +140,8 @@ async def login(
     await db.commit()
 
     return {
-        "access_token": create_access_token(user.email),
-        "refresh_token": create_refresh_token(user.email),
+        "access_token": create_access_token(str(user.id)),
+        "refresh_token": create_refresh_token(str(user.id)),
         "token_type": "bearer",
     }
 
@@ -158,15 +161,20 @@ async def refresh_access_token(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
             )
-        email = payload.get("sub")
-        if not email:
+        user_id_str = payload.get("sub")
+        if not user_id_str:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    result = await db.execute(select(User).where(User.email == email))
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
 
     if not user:
@@ -176,7 +184,20 @@ async def refresh_access_token(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified")
 
     return {
-        "access_token": create_access_token(user.email),
-        "refresh_token": create_refresh_token(user.email),
+        "access_token": create_access_token(str(user.id)),
+        "refresh_token": create_refresh_token(str(user.id)),
         "token_type": "bearer",
     }
+
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(
+    token: str = Depends(oauth2_scheme),
+    _user: User = Depends(get_current_user),
+):
+    """
+    Logout the current user by blacklisting their access token in Redis.
+    The token's remaining TTL is used as the Redis key expiry.
+    """
+    await blacklist_token(token)
+    return {"message": "Successfully logged out"}

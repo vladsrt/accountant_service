@@ -1,4 +1,10 @@
-from unittest.mock import AsyncMock, MagicMock
+"""Tests for the Auth API Routers.
+
+JWT tokens now encode user.id (not email) as the `sub` claim.
+Redis blacklist is mocked to isolate tests from real Redis.
+"""
+
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import APIRouter, Depends
@@ -24,6 +30,11 @@ app.include_router(test_router)
 client = TestClient(app)
 
 
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
 @pytest.fixture
 def mock_db() -> AsyncMock:
     db = AsyncMock()
@@ -39,6 +50,22 @@ def override_get_db(mock_db):
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(autouse=True)
+def mock_redis_blacklist():
+    """Isolate tests from the global Redis client in auth_service.
+
+    Prevents 'RuntimeError: Event loop is closed' between tests by
+    mocking is_token_blacklisted to always return False (token not revoked).
+    """
+    with patch("app.services.auth_service.is_token_blacklisted", return_value=False):
+        yield
+
+
+# ---------------------------------------------------------------------------
+# Login / Password tests
+# ---------------------------------------------------------------------------
+
+
 def test_login_success(mock_db):
     from app.services.auth_service import get_password_hash
 
@@ -48,6 +75,7 @@ def test_login_success(mock_db):
         hashed_password=get_password_hash("realpassword"),
         is_verified=True,
     )
+    mock_user.id = 1
     mock_result.scalars.return_value.first.return_value = mock_user
     mock_db.execute.return_value = mock_result
 
@@ -74,6 +102,7 @@ def test_login_invalid_password(mock_db):
         hashed_password=get_password_hash("realpassword"),
         is_verified=True,
     )
+    mock_user.id = 1
     mock_result.scalars.return_value.first.return_value = mock_user
     mock_db.execute.return_value = mock_result
 
@@ -92,6 +121,7 @@ def test_login_unverified_email(mock_db):
         hashed_password=get_password_hash("realpassword"),
         is_verified=False,
     )
+    mock_user.id = 1
     mock_result.scalars.return_value.first.return_value = mock_user
     mock_db.execute.return_value = mock_result
 
@@ -101,13 +131,20 @@ def test_login_unverified_email(mock_db):
     assert response.status_code == 403
 
 
+# ---------------------------------------------------------------------------
+# Token refresh tests (sub = user.id as string)
+# ---------------------------------------------------------------------------
+
+
 def test_refresh_token_success(mock_db):
     from app.services.auth_service import create_refresh_token
 
-    token = create_refresh_token("test@example.com")
+    # sub is now user.id (as string "1"), not email
+    token = create_refresh_token("1")
 
     mock_result = MagicMock()
     mock_user = User(email="test@example.com", is_verified=True)
+    mock_user.id = 1
     mock_result.scalars.return_value.first.return_value = mock_user
     mock_db.execute.return_value = mock_result
 
@@ -117,13 +154,20 @@ def test_refresh_token_success(mock_db):
     assert "access_token" in data
 
 
+# ---------------------------------------------------------------------------
+# Protected route tests (sub = user.id as string)
+# ---------------------------------------------------------------------------
+
+
 def test_protected_route_success(mock_db):
     from app.services.auth_service import create_access_token
 
-    token = create_access_token("test@example.com")
+    # sub is now user.id (as string "1"), not email
+    token = create_access_token("1")
 
     mock_result = MagicMock()
     mock_user = User(email="test@example.com", is_verified=True)
+    mock_user.id = 1
     mock_result.scalars.return_value.first.return_value = mock_user
     mock_db.execute.return_value = mock_result
 
@@ -138,6 +182,11 @@ def test_protected_route_unauthorized():
 
     response = client.get("/protected", headers={"Authorization": "Bearer invalid_token"})
     assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting test
+# ---------------------------------------------------------------------------
 
 
 def test_login_rate_limiting(mock_db):

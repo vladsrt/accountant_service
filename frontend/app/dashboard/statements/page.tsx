@@ -29,7 +29,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react"
-import { apiGet, apiPostFile } from "@/lib/api"
+import { apiPostFile } from "@/lib/api"
 import { useAuth } from "@/hooks/useAuth"
 
 const navItems = [
@@ -78,18 +78,12 @@ export default function StatementsPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
-  const [companyId, setCompanyId] = useState<number | null>(null)
 
-  // Load company to get company_id
+  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/auth")
-      return
     }
-
-    apiGet<{ id: number }>("/api/v1/company/me")
-      .then((data) => setCompanyId(data.id))
-      .catch(() => router.push("/onboarding"))
   }, [isAuthenticated, router])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -111,7 +105,7 @@ export default function StatementsPage() {
       handleFileUpload(files[0])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId])
+  }, [])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -119,21 +113,15 @@ export default function StatementsPage() {
       handleFileUpload(files[0])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId])
+  }, [])
 
   const handleFileUpload = async (file: File) => {
-    if (!companyId) {
-      toast.error("Brak profilu firmy. Dokończ onboarding.")
-      return
-    }
-
     setUploadedFile(file)
     setIsUploading(true)
     setUploadResult(null)
     try {
-      const result = await apiPostFile<UploadResult>("/api/v1/bank/upload", file, {
-        company_id: String(companyId),
-      })
+      // company_id is now derived from the authenticated user's session on the backend
+      const result = await apiPostFile<UploadResult>("/api/v1/bank/upload", file)
       setUploadResult(result)
       toast.success(
         `Dodano ${result.new_inserted} nowych transakcji, ${result.duplicates_ignored} duplikatów pominięto`

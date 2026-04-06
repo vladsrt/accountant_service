@@ -1,10 +1,11 @@
 """FastAPI endpoints for managing KSeF integrations."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.database import get_db
 from app.db.models.company import Company
 from app.db.models.user import User
@@ -33,7 +34,9 @@ async def _get_user_company(current_user: User, db: AsyncSession) -> Company:
     status_code=status.HTTP_200_OK,
     summary="Configure KSeF credentials and trigger initial sync",
 )
+@limiter.limit("5/minute")
 async def setup_ksef(
+    request: Request,
     payload: KsefSetupRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -66,7 +69,9 @@ async def setup_ksef(
     status_code=status.HTTP_202_ACCEPTED,
     summary="Trigger a background KSeF synchronization",
 )
+@limiter.limit("5/minute")
 async def trigger_ksef_sync(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
