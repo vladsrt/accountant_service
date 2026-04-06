@@ -8,7 +8,7 @@ If ambiguous (multiple rates possible), return all candidates.
 
 from __future__ import annotations
 
-from src.config import THRESHOLD_PKWIU_PREFIXES
+from app.core.config import settings
 from src.knowledge_base import get_pkwiu_index
 
 
@@ -154,5 +154,5 @@ def _is_threshold_dependent(pkwiu_code: str | None, rate: float) -> bool:
         return False
     pkwiu_norm = pkwiu_code.replace("ex ", "")
     return any(
-        pkwiu_norm.startswith(prefix) or pkwiu_norm == prefix for prefix in THRESHOLD_PKWIU_PREFIXES
+        pkwiu_norm.startswith(prefix) or pkwiu_norm == prefix for prefix in settings.THRESHOLD_PKWIU_PREFIXES
     )

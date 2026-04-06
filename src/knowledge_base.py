@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.config import KB_PATH
+from app.core.config import settings
 
 
-def load_knowledge_base(path: Path = KB_PATH) -> dict:
+def load_knowledge_base(path: Path | None = None) -> dict:
     """Load raw knowledge base from JSON."""
+    if path is None:
+        path = settings.KB_PATH
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
