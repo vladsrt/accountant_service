@@ -37,7 +37,7 @@ async def call_llm(
     for attempt in range(max_attempts):
         try:
             start = time.time()
-            response = await client.chat.completions.create(
+            response = await client.chat.completions.create(    # type: ignore[call-overload]
                 model=model,
                 temperature=temperature,
                 messages=[
