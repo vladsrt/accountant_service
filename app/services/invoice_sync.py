@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -214,33 +215,32 @@ class InvoiceSyncService:
                 )
 
                 # 3. Download and decrypt the ZIP
-                download_dir = Path(self._settings.KSEF_DOWNLOAD_DIR) / str(company_id) / role
-                download_dir.mkdir(parents=True, exist_ok=True)
+                with tempfile.TemporaryDirectory(
+                    prefix=f"ksef_{company_id}_{role}_"
+                ) as tmp_dir:
+                    download_dir = Path(tmp_dir)
 
-                paths: list[Path] = await asyncio.to_thread(
-                    lambda: list(
-                        auth.invoices.fetch_package(
-                            package=package,
-                            export=export,
-                            target_directory=download_dir,
-                        )
-                    ),
-                )
-                self.logger.info(
-                    "Downloaded %d file(s) for role=%s chunk=%d page=%d",
-                    len(paths),
-                    role,
-                    chunk_idx,
-                    page_idx,
-                )
+                    paths: list[Path] = await asyncio.to_thread(
+                        lambda: list(
+                            auth.invoices.fetch_package(
+                                package=package,
+                                export=export,
+                                target_directory=download_dir,
+                            )
+                        ),
+                    )
+                    self.logger.info(
+                        "Downloaded %d file(s) for role=%s chunk=%d page=%d",
+                        len(paths),
+                        role,
+                        chunk_idx,
+                        page_idx,
+                    )
 
-                is_truncated = False
-                last_storage_date: datetime | None = None
+                    is_truncated = False
+                    last_storage_date: datetime | None = None
 
-                # 4. Parse files and map metadata
-                # Collect paths first; a try/finally guarantees cleanup even if
-                # an unexpected exception fires mid-loop (e.g. DB crash).
-                try:
+                    # 4. Parse files and map metadata
                     for path in paths:
                         # Parse metadata JSON
                         if "metadata" in path.name.lower() and path.suffix == ".json":
@@ -296,13 +296,7 @@ class InvoiceSyncService:
                             db=db,
                         )
                         parsed_results.append(parsed)
-
-                finally:
-                    for path in paths:
-                        try:
-                            path.unlink(missing_ok=True)
-                        except OSError:
-                            self.logger.warning("Could not delete temp file %s", path)
+                    # TemporaryDirectory auto-cleans up here
 
                 # 5. Handle pagination
                 if is_truncated and last_storage_date:
