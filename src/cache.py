@@ -9,7 +9,6 @@ import redis.asyncio as aioredis
 
 from app.core.config import settings
 from src.models import ClassificationResult, Verdict
-from src.rate_lookup import _is_threshold_dependent
 
 
 def normalize_for_cache(p7_text: str) -> str:
@@ -53,14 +52,16 @@ def normalize_for_cache(p7_text: str) -> str:
 
 def _serialize_result(result: ClassificationResult) -> str:
     """Serialize a ClassificationResult to JSON for Redis storage."""
-    return json.dumps({
-        "rate_percent": result.rate_percent,
-        "pkwiu_code": result.pkwiu_code,
-        "pkwiu_description": result.pkwiu_description,
-        "confidence": result.confidence,
-        "reasoning": result.reasoning,
-        "is_threshold_dependent": result.is_threshold_dependent,
-    })
+    return json.dumps(
+        {
+            "rate_percent": result.rate_percent,
+            "pkwiu_code": result.pkwiu_code,
+            "pkwiu_description": result.pkwiu_description,
+            "confidence": result.confidence,
+            "reasoning": result.reasoning,
+            "is_threshold_dependent": result.is_threshold_dependent,
+        }
+    )
 
 
 def _deserialize_result(data: str) -> ClassificationResult:

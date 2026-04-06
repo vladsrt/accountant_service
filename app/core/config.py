@@ -107,10 +107,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_secret_key_in_prod(self) -> "Settings":
-        if (
-            self.ENVIRONMENT == "prod"
-            and self.SECRET_KEY == "supersecret_dev_key_replace_in_prod"
-        ):
+        if self.ENVIRONMENT == "prod" and self.SECRET_KEY == "supersecret_dev_key_replace_in_prod":
             raise ValueError(
                 "SECRET_KEY must be changed from the default value in production. "
                 "Set a strong random secret via the SECRET_KEY environment variable."

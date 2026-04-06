@@ -215,9 +215,7 @@ class InvoiceSyncService:
                 )
 
                 # 3. Download and decrypt the ZIP
-                with tempfile.TemporaryDirectory(
-                    prefix=f"ksef_{company_id}_{role}_"
-                ) as tmp_dir:
+                with tempfile.TemporaryDirectory(prefix=f"ksef_{company_id}_{role}_") as tmp_dir:
                     download_dir = Path(tmp_dir)
 
                     paths: list[Path] = await asyncio.to_thread(

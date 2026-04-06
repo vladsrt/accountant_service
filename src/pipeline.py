@@ -10,9 +10,9 @@ Then: deterministic rate_lookup + revenue threshold → ACCEPTED / NEEDS_CLARIFI
 
 from __future__ import annotations
 
+from app.core.config import settings
 from src.auditor import audit as code_audit
 from src.cache import ClassificationCache
-from app.core.config import settings
 from src.llm_client import call_llm
 from src.models import ClassificationResult, Verdict
 from src.prompts.step1_sanitizer import SYSTEM_PROMPT as STEP1_PROMPT

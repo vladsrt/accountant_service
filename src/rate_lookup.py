@@ -154,5 +154,6 @@ def _is_threshold_dependent(pkwiu_code: str | None, rate: float) -> bool:
         return False
     pkwiu_norm = pkwiu_code.replace("ex ", "")
     return any(
-        pkwiu_norm.startswith(prefix) or pkwiu_norm == prefix for prefix in settings.THRESHOLD_PKWIU_PREFIXES
+        pkwiu_norm.startswith(prefix) or pkwiu_norm == prefix
+        for prefix in settings.THRESHOLD_PKWIU_PREFIXES
     )
