@@ -33,7 +33,12 @@ export function useAuth() {
     await apiPost("/api/v1/auth/register", { email, password })
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await apiPost("/api/v1/auth/logout")
+    } catch {
+      // If the server call fails (e.g. expired token), still clear locally
+    }
     clearTokens()
     router.push("/auth")
   }, [router])
