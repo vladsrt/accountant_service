@@ -285,8 +285,8 @@ class KsefAuthService:
 
         # Authenticate via SDK (sync → thread)
         self.logger.info(
-            "Authenticating via ksef2 SDK (NIP=%s, env=%s)",
-            nip,
+            "Authenticating via ksef2 SDK (NIP=***%s, env=%s)",
+            nip[-4:] if nip else "????",
             self._environment.name,
         )
         tokens = await asyncio.to_thread(self._sdk_authenticate, decrypted_token, nip)

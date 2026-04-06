@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from decimal import Decimal
 from typing import Any
@@ -26,7 +25,7 @@ class ClassificationService:
         """Run the sync classifier in a thread to avoid blocking the event loop."""
         from src.pipeline import classify
 
-        result = await asyncio.to_thread(classify, p7_text, use_cache=True)
+        result = await classify(p7_text, use_cache=True)
         return {
             "verdict": result.verdict.value,
             "rate_percent": result.rate_percent,
@@ -85,10 +84,9 @@ class ClassificationService:
                 cls_result = await ClassificationService._classify_single_p7(p7_text)
             except Exception:
                 logger.exception(
-                    "Classification failed for invoice %d, line %d: %s",
+                    "Classification failed for invoice %d, line %d",
                     invoice_id,
                     idx,
-                    p7_text[:80],
                 )
                 has_error = True
                 continue
