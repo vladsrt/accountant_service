@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
-import sqlite3
-import threading
 import unicodedata
-from datetime import datetime, timedelta
-from pathlib import Path
 
-from src.config import CACHE_DB_PATH, CACHE_TTL_DAYS
+import redis.asyncio as aioredis
+
+from app.core.config import settings
 from src.models import ClassificationResult, Verdict
 from src.rate_lookup import _is_threshold_dependent
 
@@ -52,115 +51,69 @@ def normalize_for_cache(p7_text: str) -> str:
     return hashlib.sha256(ascii_text.encode()).hexdigest()
 
 
+def _serialize_result(result: ClassificationResult) -> str:
+    """Serialize a ClassificationResult to JSON for Redis storage."""
+    return json.dumps({
+        "rate_percent": result.rate_percent,
+        "pkwiu_code": result.pkwiu_code,
+        "pkwiu_description": result.pkwiu_description,
+        "confidence": result.confidence,
+        "reasoning": result.reasoning,
+        "is_threshold_dependent": result.is_threshold_dependent,
+    })
+
+
+def _deserialize_result(data: str) -> ClassificationResult:
+    """Deserialize a ClassificationResult from JSON stored in Redis."""
+    d = json.loads(data)
+    return ClassificationResult(
+        verdict=Verdict.ACCEPTED,
+        rate_percent=d["rate_percent"],
+        pkwiu_code=d["pkwiu_code"],
+        pkwiu_description=d["pkwiu_description"],
+        confidence=d["confidence"],
+        reasoning=d["reasoning"],
+        ambiguity_flags=[],
+        rejection_reason=None,
+        corridor="CACHE",
+        is_threshold_dependent=d.get("is_threshold_dependent", False),
+    )
+
+
 class ClassificationCache:
-    def __init__(self, db_path: Path = CACHE_DB_PATH):
-        self._memory: dict[str, ClassificationResult] = {}
-        self._db_path = db_path
-        self._lock = threading.Lock()
-        self._init_db()
+    """Async Redis-backed classification cache.
 
-    def _init_db(self):
-        self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self._db_path)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS classification_cache (
-                cache_key     TEXT PRIMARY KEY,
-                p7_original   TEXT NOT NULL,
-                rate_percent  REAL,
-                pkwiu_code    TEXT,
-                pkwiu_desc    TEXT,
-                confidence    REAL NOT NULL,
-                reasoning     TEXT,
-                created_at    TEXT NOT NULL
-            )
-        """)
-        conn.commit()
-        conn.close()
+    Replaces the former SQLite + threading.Lock implementation to avoid
+    'database is locked' errors in Celery workers.
+    """
 
-    def get(self, p7_text: str) -> ClassificationResult | None:
-        key = normalize_for_cache(p7_text)
+    _PREFIX = "clf:"
 
-        # Tier 1: in-memory
-        if key in self._memory:
-            return self._memory[key]
+    def __init__(self, redis_url: str | None = None) -> None:
+        url = redis_url or settings.REDIS_URL
+        self._redis = aioredis.from_url(url, decode_responses=True)
+        self._ttl_seconds = settings.CACHE_TTL_DAYS * 86400
 
-        # Tier 2: SQLite
-        with self._lock:
-            conn = sqlite3.connect(self._db_path)
-            row = conn.execute(
-                "SELECT rate_percent, pkwiu_code, pkwiu_desc, confidence, reasoning, created_at "
-                "FROM classification_cache WHERE cache_key = ?",
-                (key,),
-            ).fetchone()
-            conn.close()
-
-        if row is None:
+    async def get(self, p7_text: str) -> ClassificationResult | None:
+        key = self._PREFIX + normalize_for_cache(p7_text)
+        raw = await self._redis.get(key)
+        if raw is None:
             return None
+        return _deserialize_result(raw)
 
-        rate, pkwiu, pkwiu_desc, conf, reasoning, created_at = row
-
-        # Check TTL
-        created = datetime.fromisoformat(created_at)
-        if datetime.now() - created > timedelta(days=CACHE_TTL_DAYS):
-            self._evict(key)
-            return None
-
-        result = ClassificationResult(
-            verdict=Verdict.ACCEPTED,
-            rate_percent=rate,
-            pkwiu_code=pkwiu,
-            pkwiu_description=pkwiu_desc,
-            confidence=conf,
-            reasoning=reasoning,
-            ambiguity_flags=[],
-            rejection_reason=None,
-            corridor="CACHE",
-            is_threshold_dependent=_is_threshold_dependent(pkwiu, rate) if rate else False,
-        )
-        # Promote to memory
-        self._memory[key] = result
-        return result
-
-    def put(self, p7_text: str, result: ClassificationResult):
+    async def put(self, p7_text: str, result: ClassificationResult) -> None:
         """Cache only ACCEPTED results."""
         if result.verdict != Verdict.ACCEPTED:
             return
+        key = self._PREFIX + normalize_for_cache(p7_text)
+        await self._redis.set(key, _serialize_result(result), ex=self._ttl_seconds)
 
-        key = normalize_for_cache(p7_text)
-        self._memory[key] = result
-
-        with self._lock:
-            conn = sqlite3.connect(self._db_path)
-            conn.execute(
-                "INSERT OR REPLACE INTO classification_cache "
-                "(cache_key, p7_original, rate_percent, pkwiu_code, pkwiu_desc, "
-                "confidence, reasoning, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    key,
-                    p7_text,
-                    result.rate_percent,
-                    result.pkwiu_code,
-                    result.pkwiu_description,
-                    result.confidence,
-                    result.reasoning,
-                    datetime.now().isoformat(),
-                ),
-            )
-            conn.commit()
-            conn.close()
-
-    def _evict(self, key: str):
-        self._memory.pop(key, None)
-        with self._lock:
-            conn = sqlite3.connect(self._db_path)
-            conn.execute("DELETE FROM classification_cache WHERE cache_key = ?", (key,))
-            conn.commit()
-            conn.close()
-
-    def clear(self):
-        self._memory.clear()
-        with self._lock:
-            conn = sqlite3.connect(self._db_path)
-            conn.execute("DELETE FROM classification_cache")
-            conn.commit()
-            conn.close()
+    async def clear(self) -> None:
+        """Remove all classification cache keys."""
+        cursor = 0
+        while True:
+            cursor, keys = await self._redis.scan(cursor, match=f"{self._PREFIX}*", count=500)
+            if keys:
+                await self._redis.delete(*keys)
+            if cursor == 0:
+                break
