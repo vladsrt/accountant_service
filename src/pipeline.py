@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from src.auditor import audit as code_audit
 from src.cache import ClassificationCache
-from src.config import FATAL_AMBIGUITIES
+from app.core.config import settings
 from src.llm_client import call_llm
 from src.models import ClassificationResult, Verdict
 from src.prompts.step1_sanitizer import SYSTEM_PROMPT as STEP1_PROMPT
@@ -68,7 +68,7 @@ def _build_clarification(
     )
 
 
-def classify(
+async def classify(
     p7_text: str,
     use_cache: bool = True,
 ) -> ClassificationResult:
@@ -81,13 +81,13 @@ def classify(
 
     # Cache lookup
     if use_cache:
-        cached = _cache.get(p7_text)
+        cached = await _cache.get(p7_text)
         if cached is not None:
             cached.corridor = "CACHE"
             return cached
 
     # === Step 1: Sanitizer + Classifiability ===
-    s1_data, s1_meta = call_llm(
+    s1_data, s1_meta = await call_llm(
         STEP1_PROMPT,
         f"P_7: {p7_text}",
         STEP1_SANITIZER_SCHEMA,
@@ -104,7 +104,7 @@ def classify(
         )
 
     # === Step 2: PKWiU Classifier ===
-    s2_data, s2_meta = call_llm(
+    s2_data, s2_meta = await call_llm(
         _get_classifier_prompt(),
         f"P_7: {sanitized}",
         STEP2_CLASSIFIER_SCHEMA,
@@ -121,7 +121,7 @@ def classify(
     classifier_reasoning = s2_data.get("reasoning", "")
 
     # === Step 3: Wolny Zawód Detector ===
-    s3_data, s3_meta = call_llm(
+    s3_data, s3_meta = await call_llm(
         STEP3_PROMPT,
         f"P_7: {sanitized}",
         STEP3_WOLNY_ZAWOD_SCHEMA,
@@ -145,7 +145,7 @@ def classify(
     combined_reasoning = f"{classifier_reasoning} | Auditor: {auditor_reasoning}"
 
     # Check fatal ambiguities
-    if FATAL_AMBIGUITIES.intersection(set(ambiguity_flags)):
+    if settings.FATAL_AMBIGUITIES.intersection(set(ambiguity_flags)):
         return _build_clarification(
             reason="Fatal ambiguity: " + ", ".join(ambiguity_flags),
             question=s4_data.get("clarification_question"),
@@ -218,11 +218,11 @@ def classify(
     )
 
     if use_cache:
-        _cache.put(p7_text, result)
+        await _cache.put(p7_text, result)
 
     return result
 
 
-def clear_cache():
+async def clear_cache():
     """Clear classification cache."""
-    _cache.clear()
+    await _cache.clear()

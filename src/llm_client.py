@@ -1,47 +1,43 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 
-from openai import OpenAI, RateLimitError
+from openai import AsyncOpenAI, RateLimitError
 
-from src.config import (
-    FRONT_DESK_MODEL,
-    LLM_MAX_RETRIES,
-    LLM_TEMPERATURE,
-    OPENAI_API_KEY,
-)
+from app.core.config import settings
 
-_client = None
+_client: AsyncOpenAI | None = None
 
 
-def get_client() -> OpenAI:
+def get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = OpenAI(api_key=OPENAI_API_KEY)
+        _client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
     return _client
 
 
-def call_llm(
+async def call_llm(
     system_prompt: str,
     user_message: str,
     schema: dict,
-    model: str = FRONT_DESK_MODEL,
-    temperature: float = LLM_TEMPERATURE,
+    model: str = settings.FRONT_DESK_MODEL,
+    temperature: float = settings.LLM_TEMPERATURE,
 ) -> tuple[dict, dict]:
     """
-    Generic LLM call with structured output.
+    Async LLM call with structured output.
     Handles 429 rate limit errors with exponential backoff.
     Returns (parsed_data_dict, metadata_dict).
     """
     client = get_client()
     metadata = {"model": model, "tokens": 0, "latency_ms": 0}
-    max_attempts = LLM_MAX_RETRIES + 5  # extra retries for rate limits
+    max_attempts = settings.LLM_MAX_RETRIES + 5  # extra retries for rate limits
 
     for attempt in range(max_attempts):
         try:
             start = time.time()
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=model,
                 temperature=temperature,
                 messages=[
@@ -65,11 +61,11 @@ def call_llm(
 
         except RateLimitError:
             wait = min(2**attempt, 30)  # exponential backoff, max 30s
-            time.sleep(wait)
+            await asyncio.sleep(wait)
 
         except Exception as e:
             if attempt < max_attempts - 1:
-                time.sleep(min(2**attempt, 10))
+                await asyncio.sleep(min(2**attempt, 10))
             else:
                 raise RuntimeError(f"LLM call failed after {max_attempts} retries: {e}")
 
