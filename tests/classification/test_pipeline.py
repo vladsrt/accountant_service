@@ -14,7 +14,6 @@ import pytest
 from src.auditor import audit
 from src.models import ClassificationResult, Verdict
 
-
 # ---------------------------------------------------------------------------
 # Test 1: Auditor — gastronomia without alcohol info → REJECTED
 # ---------------------------------------------------------------------------
