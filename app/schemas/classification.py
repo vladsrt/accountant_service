@@ -72,3 +72,11 @@ class ClassificationSummaryResponse(BaseModel):
     classified: int
     needs_clarification: int
     errors: int
+
+
+class ClarificationResolveRequest(BaseModel):
+    """Request to resolve a NEEDS_CLARIFICATION line with user's answer."""
+
+    invoice_id: int
+    line_index: int
+    user_answer: str
