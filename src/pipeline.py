@@ -71,17 +71,31 @@ def _build_clarification(
 async def classify(
     p7_text: str,
     use_cache: bool = True,
+    user_context: str | None = None,
 ) -> ClassificationResult:
     """
     Stateless classification pipeline.
     Returns base rate + is_threshold_dependent flag.
     Revenue threshold split is Math Engine's responsibility.
+
+    If user_context is provided (human-in-the-loop), the user's answer
+    is appended to the P_7 text for LLM analysis, but the original P_7
+    is preserved in cache keys and output.
     """
     steps = []
 
-    # Cache lookup
+    # Build the text that LLMs will analyze
+    if user_context:
+        analyzed_text = (
+            f"Oryginalny opis: {p7_text} | Dodatkowe informacje od użytkownika: {user_context}"
+        )
+    else:
+        analyzed_text = p7_text
+
+    # Cache lookup (include user_context in key to separate cached results)
+    cache_key = f"{p7_text}||{user_context}" if user_context else p7_text
     if use_cache:
-        cached = await _cache.get(p7_text)
+        cached = await _cache.get(cache_key)
         if cached is not None:
             cached.corridor = "CACHE"
             return cached
@@ -89,7 +103,7 @@ async def classify(
     # === Step 1: Sanitizer + Classifiability ===
     s1_data, s1_meta = await call_llm(
         STEP1_PROMPT,
-        f"P_7: {p7_text}",
+        f"P_7: {analyzed_text}",
         STEP1_SANITIZER_SCHEMA,
     )
     steps.append({"step": "sanitizer", **s1_meta})
@@ -218,7 +232,7 @@ async def classify(
     )
 
     if use_cache:
-        await _cache.put(p7_text, result)
+        await _cache.put(cache_key, result)
 
     return result
 

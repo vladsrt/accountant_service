@@ -21,11 +21,11 @@ class ClassificationService:
     """Bridge between async SQLAlchemy app and sync AI classifier (src.pipeline)."""
 
     @staticmethod
-    async def _classify_single_p7(p7_text: str) -> dict[str, Any]:
-        """Run the sync classifier in a thread to avoid blocking the event loop."""
+    async def _classify_single_p7(p7_text: str, user_context: str | None = None) -> dict[str, Any]:
+        """Run the async classifier pipeline, optionally with user context."""
         from src.pipeline import classify
 
-        result = await classify(p7_text, use_cache=True)
+        result = await classify(p7_text, use_cache=True, user_context=user_context)
         return {
             "verdict": result.verdict.value,
             "rate_percent": result.rate_percent,
@@ -197,3 +197,86 @@ class ClassificationService:
         }
         logger.info("Classification complete for company %d: %s", company_id, summary)
         return summary
+
+    @staticmethod
+    async def resolve_classification(
+        db: AsyncSession,
+        company_id: int,
+        invoice_id: int,
+        line_index: int,
+        user_answer: str,
+    ) -> dict[str, Any]:
+        """Resolve a NEEDS_CLARIFICATION line using the user's answer.
+
+        Re-runs the pipeline with user_context and updates the DB row.
+        Returns a summary dict.
+        """
+        # Fetch the line via JOIN with Invoice — enforces company_id ownership (IDOR protection)
+        stmt = (
+            select(InvoiceLineClassification)
+            .join(Invoice, InvoiceLineClassification.invoice_id == Invoice.id)
+            .where(
+                InvoiceLineClassification.invoice_id == invoice_id,
+                InvoiceLineClassification.line_index == line_index,
+                Invoice.company_id == company_id,
+            )
+        )
+        result = await db.execute(stmt)
+        line = result.scalar_one_or_none()
+
+        if line is None:
+            return {
+                "status": "NOT_FOUND",
+                "detail": "Line classification not found or access denied",
+            }
+
+        # Re-classify with user context
+        cls_result = await ClassificationService._classify_single_p7(
+            line.p7_text, user_context=user_answer
+        )
+
+        # Update the existing row
+        line.verdict = cls_result["verdict"]
+        line.rate_percent = cls_result["rate_percent"]
+        line.pkwiu_code = cls_result["pkwiu_code"]
+        line.pkwiu_description = cls_result["pkwiu_description"]
+        line.confidence = cls_result["confidence"]
+        line.reasoning = cls_result["reasoning"]
+        line.ambiguity_flags = cls_result["ambiguity_flags"]
+        line.clarification_question = cls_result["clarification_question"]
+        line.corridor = cls_result["corridor"]
+        line.llm_calls_count += cls_result["llm_calls_count"]
+
+        # Check if the entire invoice is now fully classified
+        remaining_stmt = select(InvoiceLineClassification).where(
+            InvoiceLineClassification.invoice_id == invoice_id,
+            InvoiceLineClassification.verdict == "NEEDS_CLARIFICATION",
+            InvoiceLineClassification.line_index != line_index,
+        )
+        remaining_result = await db.execute(remaining_stmt)
+        still_pending = remaining_result.scalars().all()
+
+        # If no more pending lines and this line is now ACCEPTED, mark invoice classified
+        if not still_pending and cls_result["verdict"] == "ACCEPTED":
+            inv_stmt = select(Invoice).where(Invoice.id == invoice_id)
+            inv_result = await db.execute(inv_stmt)
+            invoice = inv_result.scalar_one_or_none()
+            if invoice:
+                invoice.is_classified = True
+                # Set tax_rate if single rate
+                all_lines_stmt = select(InvoiceLineClassification).where(
+                    InvoiceLineClassification.invoice_id == invoice_id
+                )
+                all_lines_result = await db.execute(all_lines_stmt)
+                all_lines = all_lines_result.scalars().all()
+                rates = {line.rate_percent for line in all_lines if line.rate_percent is not None}
+                invoice.tax_rate = Decimal(str(rates.pop())) if len(rates) == 1 else None
+
+        await db.commit()
+
+        return {
+            "status": "RESOLVED",
+            "verdict": cls_result["verdict"],
+            "invoice_id": invoice_id,
+            "line_index": line_index,
+        }

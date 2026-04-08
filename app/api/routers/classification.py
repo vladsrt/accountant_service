@@ -11,6 +11,7 @@ from app.db.models.invoice import Invoice
 from app.db.models.invoice_line_classification import InvoiceLineClassification
 from app.db.models.user import User
 from app.schemas.classification import (
+    ClarificationResolveRequest,
     ClassificationTriggerResponse,
     InvoiceClassificationResponse,
     LineClassificationResponse,
@@ -18,6 +19,7 @@ from app.schemas.classification import (
     PendingLineResponse,
 )
 from app.services.auth_service import get_current_user
+from app.services.classification_service import ClassificationService
 from app.tasks.classification_tasks import classify_company_task
 
 router = APIRouter(prefix="/api/v1/classification", tags=["Classification"])
@@ -191,3 +193,34 @@ async def reclassify_invoice(
         status="Reclassification triggered",
         task_id=task.id,
     )
+
+
+@router.post(
+    "/resolve",
+    summary="Resolve a NEEDS_CLARIFICATION line with user's answer",
+)
+@limiter.limit("10/minute")
+async def resolve_pending_classification(
+    request: Request,
+    body: ClarificationResolveRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Re-classify a pending line using the user's clarification answer."""
+    company = await _get_user_company(current_user, db)
+
+    result = await ClassificationService.resolve_classification(
+        db=db,
+        company_id=company.id,
+        invoice_id=body.invoice_id,
+        line_index=body.line_index,
+        user_answer=body.user_answer,
+    )
+
+    if result["status"] == "NOT_FOUND":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=result["detail"],
+        )
+
+    return result
